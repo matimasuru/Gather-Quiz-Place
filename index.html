@@ -36,9 +36,10 @@
     align-items:center;
     justify-content:center;
     padding:24px;
+    overflow-x:hidden;
   }
   .display{font-family:'Kosugi Maru', sans-serif;}
-  #app{width:100%; max-width:640px;}
+  #app{width:100%; max-width:640px; position:relative; z-index:1;}
   .screen{display:none; flex-direction:column; gap:18px;}
   .screen.active{display:flex; animation:fadein .35s ease;}
   @keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
@@ -60,6 +61,7 @@
     border-radius:18px;
     padding:26px;
     box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    position:relative;
   }
 
   .btn{
@@ -79,7 +81,10 @@
   .btn:disabled{opacity:.35; cursor:not-allowed; filter:none; transform:none;}
   .btn.secondary{background:transparent; color:var(--text); border:1.5px solid var(--panel-line);}
   .btn.pink{background:linear-gradient(90deg, var(--pink), #ff7ab0); color:#2b0f1e;}
+  .btn.green{background:linear-gradient(90deg, var(--green), #7cf0c4); color:#093322;}
+  .btn.red{background:linear-gradient(90deg, var(--red), #ff9a9a); color:#3a0d0d;}
   .btn.block{width:100%;}
+  .btn.small{padding:10px 14px; font-size:.9rem; border-radius:10px;}
 
   .field label{display:block; font-size:.85rem; color:var(--text-dim); margin-bottom:6px;}
   .field input[type=text]{
@@ -104,7 +109,6 @@
     background:#100e30; border:1px solid var(--panel-line); border-radius:10px;
     padding:10px 14px; display:flex; justify-content:space-between; font-size:.95rem;
   }
-  .player-list .score{color:var(--gold); font-weight:700;}
 
   .double-banner{
     text-align:center; font-family:'Kosugi Maru', sans-serif; font-size:1.3rem;
@@ -118,8 +122,10 @@
   .qcounter{color:var(--text-dim); font-size:.85rem; text-align:center;}
   .qtext{font-size:1.25rem; font-weight:700; text-align:center; line-height:1.5; margin:10px 0 4px 0;}
 
-  .timer-wrap{height:8px; border-radius:6px; background:#100e30; overflow:hidden; margin:14px 0;}
+  .timer-wrap{height:9px; border-radius:6px; background:#100e30; overflow:hidden; margin:14px 0;}
   .timer-bar{height:100%; background:linear-gradient(90deg, var(--green), var(--gold), var(--red)); width:100%; transition:width 1s linear;}
+  .timer-wrap.urgent .timer-bar{animation:urgentPulse .5s infinite;}
+  @keyframes urgentPulse{0%,100%{filter:brightness(1);} 50%{filter:brightness(1.7);}}
 
   .buzz-btn{
     width:170px; height:170px; border-radius:50%; margin:18px auto; display:flex;
@@ -144,13 +150,30 @@
   .choice-btn.correct{background:rgba(61,220,151,.25); border-color:var(--green);}
   .choice-btn.wrong{background:rgba(255,92,92,.25); border-color:var(--red);}
 
+  .text-answer-wrap{display:none; gap:10px; margin-top:10px;}
+  .text-answer-wrap input{flex:1; padding:14px; border-radius:12px; border:1.5px solid var(--panel-line); background:#100e30; color:var(--text); font-size:1rem;}
+  .text-answer-wrap input:disabled{opacity:.5;}
+  .text-answer-wrap input.answerable{border-color:var(--gold); box-shadow:0 0 0 2px rgba(255,201,60,.25);}
+
+  .host-judge-box{margin-top:14px; padding:14px; border-radius:12px; background:#100e30; border:1px solid var(--gold); display:none;}
+  .host-judge-box p{margin:0 0 10px 0; font-size:.9rem; color:var(--text-dim);}
+  .host-judge-box .answer-text{font-size:1.1rem; font-weight:700; color:var(--text); margin-bottom:10px;}
+
   .mini-board{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
-  .mini-chip{background:#100e30; border:1px solid var(--panel-line); border-radius:20px; padding:6px 12px; font-size:.82rem;}
+  .mini-chip{background:#100e30; border:1px solid var(--panel-line); border-radius:20px; padding:6px 12px; font-size:.82rem; display:flex; align-items:center; gap:4px;}
   .mini-chip .n{color:var(--gold); font-weight:700; margin-left:6px;}
+  .mini-chip .arrow{display:inline-block; width:12px; font-weight:700; color:var(--text-dim);}
+  .mini-chip .arrow.up{color:var(--green);}
+  .mini-chip .arrow.down{color:var(--red);}
+  .mini-chip .fire{color:var(--pink);}
 
   .result-row{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:12px; margin-bottom:10px; background:#100e30; border:1px solid var(--panel-line);}
   .result-row.rank1{background:linear-gradient(90deg, rgba(255,201,60,.25), rgba(255,62,142,.15)); border-color:var(--gold);}
-  .rank-num{font-family:'Kosugi Maru', sans-serif; font-size:1.3rem; width:34px;}
+  .result-row.reveal-in{animation:revealIn .4s ease;}
+  @keyframes revealIn{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
+  .result-row.crown{animation:crownBounce .6s ease;}
+  @keyframes crownBounce{0%{transform:scale(.82);} 55%{transform:scale(1.08);} 100%{transform:scale(1);}}
+  .rank-num{font-family:'Kosugi Maru', sans-serif; font-size:1.3rem; width:40px;}
   .rank-name{flex:1; margin-left:8px;}
   .rank-score{font-weight:700; color:var(--gold);}
 
@@ -161,9 +184,24 @@
   .file-drop:hover{border-color:var(--gold);}
   .file-drop input{display:none;}
   .rowgap{display:flex; gap:10px; flex-wrap:wrap;}
+
+  #confetti-canvas{position:fixed; inset:0; pointer-events:none; z-index:60;}
+
+  .fx-overlay{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:70; opacity:0;}
+  .fx-overlay.show{opacity:1;}
+  .fx-overlay .fx-text{font-family:'Kosugi Maru', sans-serif; font-size:3rem; padding:18px 36px; border-radius:20px; transform:scale(.5);}
+  .fx-overlay.show.correct{background:radial-gradient(circle, rgba(61,220,151,.35), transparent 70%);}
+  .fx-overlay.show.correct .fx-text{color:var(--green); text-shadow:0 0 24px rgba(61,220,151,.85); animation:fxPop .8s ease;}
+  .fx-overlay.show.wrong{background:radial-gradient(circle, rgba(255,92,92,.3), transparent 70%);}
+  .fx-overlay.show.wrong .fx-text{color:var(--red); text-shadow:0 0 24px rgba(255,92,92,.85); animation:fxShake .5s ease;}
+  @keyframes fxPop{0%{transform:scale(.4); opacity:0;} 55%{transform:scale(1.2); opacity:1;} 100%{transform:scale(1); opacity:1;}}
+  @keyframes fxShake{0%,100%{transform:translateX(0) scale(1);} 20%{transform:translateX(-12px) scale(1.05);} 40%{transform:translateX(12px) scale(1.05);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);}}
 </style>
 </head>
 <body>
+<canvas id="confetti-canvas"></canvas>
+<div class="fx-overlay" id="fx-overlay"><div class="fx-text" id="fx-text"></div></div>
+
 <div id="app">
 
   <!-- START -->
@@ -190,7 +228,7 @@
         <input type="file" id="file-input" accept=".xlsx,.xls">
       </div>
       <p class="hint">
-        1行目は見出し行。列名：<b>問題</b> / <b>選択肢1〜4</b> / <b>正解</b>（番号または選択肢の文字列）/ <b>配点</b>（省略時100）/ <b>ダブル</b>（TRUEでダブルチャンス問題、省略時は一部自動抽選）。
+        1行目は見出し行。列名：<b>問題</b> / <b>選択肢1〜4</b>（空欄なら記述式問題になります） / <b>正解</b>（選択式は番号か文字列、記述式は答え。「/」区切りで別解も指定可） / <b>配点</b>（省略時100） / <b>ダブル</b>（TRUEでダブルチャンス問題、省略時は一部自動抽選）。
       </p>
       <button class="btn secondary block" id="back-from-host-setup" style="margin-top:14px;">戻る</button>
     </div>
@@ -240,8 +278,16 @@
       <p class="qcounter" id="host-qcounter"></p>
       <div class="double-banner" id="host-double-banner">ダブルチャンス！！</div>
       <p class="qtext" id="host-qtext"></p>
-      <div class="timer-wrap"><div class="timer-bar" id="host-timer-bar"></div></div>
+      <div class="timer-wrap" id="host-timer-wrap"><div class="timer-bar" id="host-timer-bar"></div></div>
       <p class="status-line" id="host-status">早押し受付中…（残り <span id="host-timer">20</span> 秒）</p>
+      <div class="host-judge-box" id="host-judge-box">
+        <p>記述式の自動判定に一致しませんでした。回答を確認して判定してください。</p>
+        <div class="answer-text" id="host-judge-answer"></div>
+        <div class="rowgap">
+          <button class="btn green small" id="host-judge-correct">正解にする</button>
+          <button class="btn red small" id="host-judge-wrong">不正解にする</button>
+        </div>
+      </div>
       <div class="mini-board" id="host-mini-board"></div>
     </div>
   </div>
@@ -252,9 +298,14 @@
       <p class="qcounter" id="player-qcounter"></p>
       <div class="double-banner" id="player-double-banner">ダブルチャンス！！</div>
       <p class="qtext" id="player-qtext"></p>
+      <div class="timer-wrap" id="player-timer-wrap"><div class="timer-bar" id="player-timer-bar"></div></div>
       <button class="buzz-btn" id="buzz-btn">押す！</button>
       <p class="status-line" id="player-status">早押しボタンを押そう！</p>
       <div class="choice-row" id="player-choices"></div>
+      <div class="text-answer-wrap" id="player-text-wrap">
+        <input type="text" id="player-text-input" placeholder="答えを入力" disabled>
+        <button class="btn pink" id="player-text-submit" disabled>回答</button>
+      </div>
       <div class="mini-board" id="player-mini-board"></div>
     </div>
   </div>
@@ -283,21 +334,110 @@ const state = {
   room: null,
   roomId: '',
   myName: '',
-  players: {},      // peerId -> {name, score}
+  players: {},       // peerId -> {name, score, streak}
   questions: [],
   qIndex: -1,
   buzzedId: null,
   wrongIds: new Set(),
   actions: {},
+  prevRanking: [],
+  currentQType: 'choice',
+  audioCtx: null,
 };
 
+/* ---------- helpers ---------- */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function randomRoomId(len = 5) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
   for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
   return s;
 }
+function normalizeText(s) {
+  return String(s ?? '').trim().toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[！-～]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[、。，．,.!?！？「」『』〜~ー\-]/g, '');
+}
 
+/* ---------- sound effects (synth, no audio files) ---------- */
+function ensureAudio() {
+  if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return state.audioCtx;
+}
+function playTone(freq, dur = 0.15, type = 'sine', delay = 0, gain = 0.15) {
+  try {
+    const ctx = ensureAudio();
+    const t0 = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+const sfxBuzz = () => playTone(880, 0.08, 'square');
+const sfxCorrect = () => { playTone(523.25, 0.12, 'sine', 0); playTone(659.25, 0.12, 'sine', 0.1); playTone(783.99, 0.22, 'sine', 0.2); };
+const sfxWrong = () => { playTone(200, 0.3, 'sawtooth', 0, 0.12); playTone(150, 0.35, 'sawtooth', 0.05, 0.12); };
+const sfxTick = () => playTone(1000, 0.05, 'square', 0, 0.05);
+const sfxVictory = () => [523, 659, 784, 1046].forEach((f, i) => playTone(f, 0.28, 'triangle', i * 0.15, 0.16));
+
+/* ---------- confetti ---------- */
+const confettiCanvas = $('confetti-canvas');
+const cctx = confettiCanvas.getContext('2d');
+function resizeCanvas() { confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
+window.addEventListener('resize', resizeCanvas); resizeCanvas();
+let confettiParticles = [];
+let confettiRunning = false;
+function burstConfetti(count = 100) {
+  const colors = ['#ffc93c', '#ff3e8e', '#3ce7ff', '#3ddc97', '#ff7ab0'];
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: Math.random() * confettiCanvas.width,
+      y: -20 - Math.random() * 120,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      size: 6 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * 360,
+      vrot: (Math.random() - 0.5) * 10,
+      life: 0,
+      maxLife: 150 + Math.random() * 60,
+    });
+  }
+  if (!confettiRunning) { confettiRunning = true; requestAnimationFrame(tickConfetti); }
+}
+function tickConfetti() {
+  cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.03; p.rot += p.vrot; p.life++;
+    cctx.save();
+    cctx.translate(p.x, p.y);
+    cctx.rotate(p.rot * Math.PI / 180);
+    cctx.fillStyle = p.color;
+    cctx.globalAlpha = Math.max(0, 1 - p.life / p.maxLife);
+    cctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    cctx.restore();
+  });
+  confettiParticles = confettiParticles.filter(p => p.life < p.maxLife && p.y < confettiCanvas.height + 40);
+  if (confettiParticles.length > 0) requestAnimationFrame(tickConfetti);
+  else { confettiRunning = false; cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
+}
+
+/* ---------- fx flash ---------- */
+function flashFx(kind, text) {
+  const el = $('fx-overlay');
+  $('fx-text').textContent = text;
+  el.className = 'fx-overlay show ' + kind;
+  setTimeout(() => { el.className = 'fx-overlay'; }, 850);
+}
+
+/* ---------- trystero actions ---------- */
 function setupActions(room) {
   const [sendJoin, onJoin]         = room.makeAction('join');
   const [sendPlayers, onPlayers]   = room.makeAction('players');
@@ -314,8 +454,8 @@ function setupActions(room) {
 }
 
 /* ---------- start screen ---------- */
-$('go-host-btn').addEventListener('click', () => showScreen('screen-host-setup'));
-$('go-join-btn').addEventListener('click', () => showScreen('screen-join'));
+$('go-host-btn').addEventListener('click', () => { ensureAudio(); showScreen('screen-host-setup'); });
+$('go-join-btn').addEventListener('click', () => { ensureAudio(); showScreen('screen-join'); });
 $('back-from-host-setup').addEventListener('click', () => showScreen('screen-start'));
 $('back-from-join').addEventListener('click', () => showScreen('screen-start'));
 $('file-drop').addEventListener('click', () => $('file-input').click());
@@ -334,27 +474,27 @@ async function handleFile(e) {
     const questions = rows.map(r => {
       const choices = [r['選択肢1'], r['選択肢2'], r['選択肢3'], r['選択肢4']]
         .filter(c => c !== '' && c !== null && c !== undefined);
-      let correctIndex = 0;
       const rawCorrect = String(r['正解'] ?? '').trim();
-      if (choices.length > 0) {
-        const n = parseInt(rawCorrect, 10);
-        if (!isNaN(n) && n >= 1 && n <= choices.length) {
-          correctIndex = n - 1;
-        } else {
-          const idx = choices.findIndex(c => String(c).trim() === rawCorrect);
-          correctIndex = idx >= 0 ? idx : 0;
-        }
-      }
       const points = parseInt(r['配点'], 10);
       const doubleFlag = String(r['ダブル'] ?? '').toUpperCase();
-      return {
+      const base = {
         text: String(r['問題'] ?? r['問題文'] ?? '').trim(),
-        choices,
-        correctIndex,
         points: isNaN(points) ? 100 : points,
         isDouble: doubleFlag === 'TRUE' || (doubleFlag === '' && Math.random() < 0.12),
       };
-    }).filter(q => q.text && q.choices.length >= 2);
+      if (choices.length >= 2) {
+        let correctIndex = 0;
+        const n = parseInt(rawCorrect, 10);
+        if (!isNaN(n) && n >= 1 && n <= choices.length) correctIndex = n - 1;
+        else {
+          const idx = choices.findIndex(c => String(c).trim() === rawCorrect);
+          correctIndex = idx >= 0 ? idx : 0;
+        }
+        return { ...base, type: 'choice', choices, correctIndex };
+      }
+      const correctAnswers = rawCorrect.split('/').map(a => a.trim()).filter(Boolean);
+      return { ...base, type: 'text', choices: [], correctAnswers: correctAnswers.length ? correctAnswers : [''] };
+    }).filter(q => q.text && (q.type === 'choice' || q.correctAnswers[0] !== ''));
 
     if (questions.length === 0) {
       alert('カセットを読み込めませんでした。列名（問題/選択肢1〜4/正解）を確認してください。');
@@ -375,7 +515,7 @@ function startHostRoom() {
   setupActions(room);
 
   state.actions.onJoin((data, peerId) => {
-    state.players[peerId] = { name: (data.name || '名無し').slice(0, 12), score: 0 };
+    state.players[peerId] = { name: (data.name || '名無し').slice(0, 12), score: 0, streak: 0 };
     broadcastPlayers();
     renderHostLobby();
   });
@@ -385,7 +525,7 @@ function startHostRoom() {
     renderHostLobby();
   });
   state.actions.onBuzz((data, peerId) => handleBuzz(peerId));
-  state.actions.onAnswer((data, peerId) => handleAnswer(peerId, data.choice));
+  state.actions.onAnswer((data, peerId) => handleAnswer(peerId, data));
 
   $('room-code-display').textContent = state.roomId;
   $('question-count-display').textContent = state.questions.length;
@@ -409,21 +549,49 @@ function renderHostLobby() {
   $('host-player-count').textContent = Object.keys(state.players).length;
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
 $('host-start-btn').addEventListener('click', () => {
   if (Object.keys(state.players).length === 0 && !confirm('参加者がいませんが開始しますか？')) return;
   state.qIndex = -1;
   nextQuestion();
 });
 
+/* ---------- score board with rank arrows ---------- */
+function snapshotRanking() {
+  state.prevRanking = Object.entries(state.players)
+    .sort((a, b) => b[1].score - a[1].score)
+    .map(([id]) => id);
+}
+function buildBoard() {
+  const current = Object.entries(state.players).map(([id, p]) => ({ id, name: p.name, score: p.score, streak: p.streak || 0 }));
+  current.sort((a, b) => b.score - a.score);
+  return current.map((p, idx) => {
+    const prevIdx = state.prevRanking.indexOf(p.id);
+    let arrow = '';
+    if (prevIdx >= 0) arrow = idx < prevIdx ? '▲' : idx > prevIdx ? '▼' : '―';
+    return { ...p, arrow };
+  });
+}
+function renderScoreBoard(board, elId) {
+  const el = $(elId);
+  el.innerHTML = '';
+  board.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'mini-chip';
+    const arrowClass = p.arrow === '▲' ? 'up' : p.arrow === '▼' ? 'down' : '';
+    const name = elId === 'player-mini-board' && p.id === selfId ? `${escapeHtml(p.name)}（あなた）` : escapeHtml(p.name);
+    const fire = p.streak >= 2 ? ` <span class="fire">🔥${p.streak}</span>` : '';
+    chip.innerHTML = `<span class="arrow ${arrowClass}">${p.arrow}</span>${name}${fire}<span class="n">${p.score}</span>`;
+    el.appendChild(chip);
+  });
+}
+
 /* ---------- host: game flow ---------- */
 let buzzTimer = null, answerTimer = null;
 
 function nextQuestion() {
   clearInterval(buzzTimer); clearInterval(answerTimer);
+  $('host-judge-box').style.display = 'none';
+  snapshotRanking();
   state.qIndex++;
   if (state.qIndex >= state.questions.length) { endGame(); return; }
   state.buzzedId = null;
@@ -431,12 +599,12 @@ function nextQuestion() {
   const q = state.questions[state.qIndex];
   state.actions.sendQuestion({
     index: state.qIndex, total: state.questions.length,
-    text: q.text, choices: q.choices, isDouble: q.isDouble
+    text: q.text, qtype: q.type, choices: q.choices, isDouble: q.isDouble
   });
   $('host-qcounter').textContent = `第 ${state.qIndex + 1} 問 / 全 ${state.questions.length} 問`;
   $('host-qtext').textContent = q.text;
   $('host-double-banner').classList.toggle('show', q.isDouble);
-  renderHostScores();
+  renderScoreBoard(buildBoard(), 'host-mini-board');
   showScreen('screen-host-game');
   startBuzzWindow();
 }
@@ -447,10 +615,12 @@ function startBuzzWindow() {
   let t = 20;
   $('host-timer').textContent = t;
   $('host-timer-bar').style.width = '100%';
+  $('host-timer-wrap').classList.remove('urgent');
   buzzTimer = setInterval(() => {
     t--;
     $('host-timer').textContent = t;
     $('host-timer-bar').style.width = Math.max(0, (t / 20) * 100) + '%';
+    if (t <= 5 && t > 0) { $('host-timer-wrap').classList.add('urgent'); sfxTick(); }
     if (t <= 0) { clearInterval(buzzTimer); revealAndNext(); }
   }, 1000);
 }
@@ -468,24 +638,49 @@ function handleBuzz(peerId) {
 
 function startAnswerWindow() {
   clearInterval(answerTimer);
-  let t = 10;
+  let t = 12;
   $('host-timer').textContent = t;
   $('host-timer-bar').style.width = '100%';
+  $('host-timer-wrap').classList.remove('urgent');
   answerTimer = setInterval(() => {
     t--;
     $('host-timer').textContent = t;
-    $('host-timer-bar').style.width = Math.max(0, (t / 10) * 100) + '%';
-    if (t <= 0) { clearInterval(answerTimer); handleAnswer(state.buzzedId, -1); }
+    $('host-timer-bar').style.width = Math.max(0, (t / 12) * 100) + '%';
+    if (t <= 5 && t > 0) { $('host-timer-wrap').classList.add('urgent'); sfxTick(); }
+    if (t <= 0) { clearInterval(answerTimer); handleAnswer(state.buzzedId, state.currentQType === 'text' ? { text: '' } : { choice: -1 }); }
   }, 1000);
 }
 
-function handleAnswer(peerId, choice) {
+function handleAnswer(peerId, data) {
   if (state.qIndex < 0 || peerId !== state.buzzedId) return;
   clearInterval(answerTimer);
   const q = state.questions[state.qIndex];
-  const correct = choice === q.correctIndex;
-  applyResult(peerId, correct, q);
+  if (q.type === 'text') {
+    const norm = normalizeText(data.text);
+    const isMatch = norm !== '' && q.correctAnswers.some(a => normalizeText(a) === norm);
+    if (isMatch) applyResult(peerId, true, q);
+    else showHostJudge(peerId, data.text, q);
+  } else {
+    applyResult(peerId, data.choice === q.correctIndex, q);
+  }
 }
+
+function showHostJudge(peerId, text, q) {
+  $('host-judge-box').style.display = 'block';
+  $('host-judge-answer').textContent = text ? `回答：「${text}」` : '（未回答／時間切れ）';
+  $('host-judge-box').dataset.peer = peerId;
+  $('host-status').textContent = '回答を判定してください';
+}
+$('host-judge-correct').addEventListener('click', () => {
+  const peerId = $('host-judge-box').dataset.peer;
+  $('host-judge-box').style.display = 'none';
+  applyResult(peerId, true, state.questions[state.qIndex]);
+});
+$('host-judge-wrong').addEventListener('click', () => {
+  const peerId = $('host-judge-box').dataset.peer;
+  $('host-judge-box').style.display = 'none';
+  applyResult(peerId, false, state.questions[state.qIndex]);
+});
 
 function calcMultiplier(myScoreBefore) {
   const scores = Object.values(state.players).map(p => p.score);
@@ -495,55 +690,53 @@ function calcMultiplier(myScoreBefore) {
   const gap = leader - last;
   if (gap <= 0) return 1;
   const ratio = Math.max(0, Math.min(1, (leader - myScoreBefore) / gap));
-  return 0.6 + ratio * 1.4; // leader側ほど1倍に近い低倍率、最下位ほど2倍に近い高倍率
+  return 0.6 + ratio * 1.4; // リーダーほど低倍率(最小0.6)、最下位ほど高倍率(最大2.0)
 }
 
 function applyResult(peerId, correct, q) {
+  if (!state.players[peerId]) return;
   let delta = 0;
+  let streak = 0;
   if (correct) {
     const before = state.players[peerId].score;
     const mult = calcMultiplier(before);
-    delta = Math.round(q.points * mult * (q.isDouble ? 2 : 1));
+    streak = (state.players[peerId].streak || 0) + 1;
+    state.players[peerId].streak = streak;
+    const comboMult = 1 + Math.min(streak - 1, 5) * 0.1;
+    delta = Math.round(q.points * mult * comboMult * (q.isDouble ? 2 : 1));
     state.players[peerId].score += delta;
   } else {
     state.wrongIds.add(peerId);
+    state.players[peerId].streak = 0;
   }
-  const scores = Object.fromEntries(Object.entries(state.players).map(([id, p]) => [id, p.score]));
+  const board = buildBoard();
+  const correctText = q.type === 'text' ? q.correctAnswers[0] : q.choices[q.correctIndex];
   state.actions.sendJudge({
-    id: peerId, correct, delta,
-    correctIndex: q.correctIndex,
-    correctText: q.choices[q.correctIndex],
-    scores
+    id: peerId, correct, delta, streak,
+    correctIndex: q.type === 'choice' ? q.correctIndex : -1,
+    correctText, board
   });
-  renderHostScores();
+  renderScoreBoard(board, 'host-mini-board');
 
   if (correct) {
-    $('host-status').textContent = `正解！ +${delta}点`;
+    flashFx('correct', 'せいかい！'); burstConfetti(70); sfxCorrect();
+    $('host-status').textContent = `正解！ +${delta}点${streak >= 2 ? `（${streak}連続！）` : ''}`;
     setTimeout(nextQuestion, 2800);
   } else {
+    flashFx('wrong', 'ざんねん…'); sfxWrong();
     state.buzzedId = null;
     const remaining = Object.keys(state.players).filter(id => !state.wrongIds.has(id));
-    if (remaining.length === 0) { revealAndNext(); }
-    else { startBuzzWindow(); }
+    if (remaining.length === 0) revealAndNext();
+    else startBuzzWindow();
   }
 }
 
 function revealAndNext() {
   const q = state.questions[state.qIndex];
-  state.actions.sendReveal({ correctIndex: q.correctIndex, correctText: q.choices[q.correctIndex] });
-  $('host-status').textContent = `正解は「${q.choices[q.correctIndex]}」でした`;
+  const correctText = q.type === 'text' ? q.correctAnswers[0] : q.choices[q.correctIndex];
+  state.actions.sendReveal({ correctIndex: q.type === 'choice' ? q.correctIndex : -1, correctText });
+  $('host-status').textContent = `正解は「${correctText}」でした`;
   setTimeout(nextQuestion, 2800);
-}
-
-function renderHostScores() {
-  const el = $('host-mini-board');
-  el.innerHTML = '';
-  Object.values(state.players).sort((a, b) => b.score - a.score).forEach(p => {
-    const chip = document.createElement('div');
-    chip.className = 'mini-chip';
-    chip.innerHTML = `${escapeHtml(p.name)}<span class="n">${p.score}</span>`;
-    el.appendChild(chip);
-  });
 }
 
 function endGame() {
@@ -551,13 +744,14 @@ function endGame() {
     .map(([id, p]) => ({ id, name: p.name, score: p.score }))
     .sort((a, b) => b.score - a.score);
   state.actions.sendOver({ ranking });
-  renderResult(ranking);
   showScreen('screen-result');
+  showResultsSequential(ranking);
 }
 
 /* ---------- player flow ---------- */
 $('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 $('join-btn').addEventListener('click', () => {
+  ensureAudio();
   const code = $('join-code').value.trim().toUpperCase();
   const name = $('join-name').value.trim();
   if (!code || !name) { alert('部屋コードとニックネームを入力してください'); return; }
@@ -577,7 +771,7 @@ function startPlayer(code, name) {
   state.actions.onBuzzWin(data => renderPlayerBuzzWin(data));
   state.actions.onJudge(data => renderPlayerJudge(data));
   state.actions.onReveal(data => renderPlayerReveal(data));
-  state.actions.onOver(data => { renderResult(data.ranking); showScreen('screen-result'); });
+  state.actions.onOver(data => { showScreen('screen-result'); showResultsSequential(data.ranking); });
 
   state.actions.sendJoin({ name });
   showScreen('screen-player-lobby');
@@ -593,106 +787,166 @@ function renderPlayerLobby(list) {
   });
 }
 
+let playerTimer = null;
+function startPlayerTimer(seconds) {
+  clearInterval(playerTimer);
+  let t = seconds;
+  $('player-timer-bar').style.width = '100%';
+  $('player-timer-wrap').classList.remove('urgent');
+  playerTimer = setInterval(() => {
+    t--;
+    $('player-timer-bar').style.width = Math.max(0, (t / seconds) * 100) + '%';
+    if (t <= 5 && t > 0) $('player-timer-wrap').classList.add('urgent');
+    if (t <= 0) clearInterval(playerTimer);
+  }, 1000);
+}
+
 function renderPlayerQuestion(data) {
   showScreen('screen-player-game');
+  state.currentQType = data.qtype;
   $('player-qcounter').textContent = `第 ${data.index + 1} 問 / 全 ${data.total} 問`;
   $('player-qtext').textContent = data.text;
   $('player-double-banner').classList.toggle('show', data.isDouble);
   $('player-status').textContent = '早押しボタンを押そう！';
+  $('player-status').classList.remove('win');
   $('buzz-btn').disabled = false;
+  startPlayerTimer(20);
 
   const box = $('player-choices');
   box.innerHTML = '';
-  data.choices.forEach((c, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.textContent = c;
-    btn.disabled = true;
-    btn.dataset.idx = i;
-    btn.addEventListener('click', () => {
-      if (btn.disabled) return;
-      box.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
-      state.actions.sendAnswer({ choice: i });
-      $('player-status').textContent = '回答を送信しました…';
+  if (data.qtype === 'text') {
+    box.style.display = 'none';
+    $('player-text-wrap').style.display = 'flex';
+    $('player-text-input').value = '';
+    $('player-text-input').disabled = true;
+    $('player-text-input').classList.remove('answerable');
+    $('player-text-submit').disabled = true;
+  } else {
+    box.style.display = 'grid';
+    $('player-text-wrap').style.display = 'none';
+    data.choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = c;
+      btn.disabled = true;
+      btn.dataset.idx = i;
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        box.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+        state.actions.sendAnswer({ choice: i });
+        $('player-status').textContent = '回答を送信しました…';
+      });
+      box.appendChild(btn);
     });
-    box.appendChild(btn);
-  });
+  }
 }
 
 $('buzz-btn').addEventListener('click', () => {
   $('buzz-btn').disabled = true;
+  sfxBuzz();
   state.actions.sendBuzz({});
   $('player-status').textContent = '早押し送信！判定を待っています…';
 });
 
+$('player-text-submit').addEventListener('click', submitTextAnswer);
+$('player-text-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitTextAnswer(); });
+function submitTextAnswer() {
+  if ($('player-text-submit').disabled) return;
+  const value = $('player-text-input').value.trim();
+  if (!value) return;
+  $('player-text-input').disabled = true;
+  $('player-text-submit').disabled = true;
+  state.actions.sendAnswer({ text: value });
+  $('player-status').textContent = '回答を送信しました…';
+}
+
 function renderPlayerBuzzWin(data) {
+  clearInterval(playerTimer);
   $('buzz-btn').disabled = true;
   const iAmWinner = data.id === selfId;
   $('player-status').textContent = iAmWinner
-    ? 'あなたの番です！選択肢から選んでください'
+    ? 'あなたの番です！回答してください'
     : `${data.name} さんが回答中…`;
   $('player-status').classList.toggle('win', iAmWinner);
-  document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
-    b.disabled = !iAmWinner;
-    b.classList.toggle('answerable', iAmWinner);
-  });
+  if (state.currentQType === 'text') {
+    $('player-text-input').disabled = !iAmWinner;
+    $('player-text-submit').disabled = !iAmWinner;
+    $('player-text-input').classList.toggle('answerable', iAmWinner);
+    if (iAmWinner) { startPlayerTimer(12); $('player-text-input').focus(); }
+  } else {
+    document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+      b.disabled = !iAmWinner;
+      b.classList.toggle('answerable', iAmWinner);
+    });
+    if (iAmWinner) startPlayerTimer(12);
+  }
 }
 
 function renderPlayerJudge(data) {
-  const boxBtns = document.querySelectorAll('#player-choices .choice-btn');
-  boxBtns.forEach(b => {
-    const idx = parseInt(b.dataset.idx, 10);
-    if (idx === data.correctIndex) b.classList.add('correct');
-  });
+  clearInterval(playerTimer);
+  if (state.currentQType === 'choice') {
+    document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+      const idx = parseInt(b.dataset.idx, 10);
+      if (idx === data.correctIndex) b.classList.add('correct');
+      else if (!data.correct && data.id === selfId) b.classList.add('wrong');
+      b.disabled = true;
+    });
+  } else {
+    $('player-text-input').disabled = true;
+    $('player-text-submit').disabled = true;
+  }
   if (data.id === selfId) {
-    $('player-status').textContent = data.correct ? `正解！ +${data.delta}点` : '残念、不正解…';
+    $('player-status').textContent = data.correct
+      ? `正解！ +${data.delta}点${data.streak >= 2 ? `（${data.streak}連続！）` : ''}`
+      : `残念、不正解…（正解：${data.correctText}）`;
     $('player-status').classList.toggle('win', data.correct);
-    if (!data.correct) {
-      boxBtns.forEach(b => { if (!b.classList.contains('correct')) b.classList.add('wrong'); });
-    }
+    flashFx(data.correct ? 'correct' : 'wrong', data.correct ? 'せいかい！' : 'ざんねん…');
+    if (data.correct) { burstConfetti(70); sfxCorrect(); } else sfxWrong();
   } else if (!data.correct) {
     $('player-status').textContent = '不正解…次の早押しに備えよう';
     $('buzz-btn').disabled = false;
-    boxBtns.forEach(b => b.disabled = true);
+    if (state.currentQType === 'text') {
+      $('player-text-input').value = '';
+    }
   }
-  renderPlayerScores(data.scores);
+  renderScoreBoard(data.board, 'player-mini-board');
 }
 
 function renderPlayerReveal(data) {
-  document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
-    const idx = parseInt(b.dataset.idx, 10);
-    if (idx === data.correctIndex) b.classList.add('correct');
-  });
+  clearInterval(playerTimer);
+  if (state.currentQType === 'choice') {
+    document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+      const idx = parseInt(b.dataset.idx, 10);
+      if (idx === data.correctIndex) b.classList.add('correct');
+      b.disabled = true;
+    });
+  }
+  $('buzz-btn').disabled = true;
   $('player-status').textContent = `正解は「${data.correctText}」でした`;
 }
 
-function renderPlayerScores(scores) {
-  const el = $('player-mini-board');
-  el.innerHTML = '';
-  const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  entries.forEach(([id, score]) => {
-    const chip = document.createElement('div');
-    chip.className = 'mini-chip';
-    const isMe = id === selfId;
-    chip.innerHTML = `${isMe ? 'あなた' : '???'}<span class="n">${score}</span>`;
-    el.appendChild(chip);
-  });
-}
-
-/* ---------- result ---------- */
-function renderResult(ranking) {
+/* ---------- results: suspenseful reveal ---------- */
+function showResultsSequential(ranking) {
   const el = $('result-panel');
   el.innerHTML = '';
-  if (ranking.length === 0) {
-    el.innerHTML = '<p class="stage-sub">参加者がいませんでした</p>';
-    return;
-  }
-  ranking.forEach((p, i) => {
+  if (ranking.length === 0) { el.innerHTML = '<p class="stage-sub">参加者がいませんでした</p>'; return; }
+  const order = [...ranking].reverse(); // 最下位から順に発表
+  let i = 0;
+  function revealNext() {
+    if (i >= order.length) return;
+    const p = order[i];
+    const rankIndex = ranking.indexOf(p);
     const row = document.createElement('div');
-    row.className = 'result-row' + (i === 0 ? ' rank1' : '');
-    row.innerHTML = `<span class="rank-num">${i + 1}位</span><span class="rank-name">${escapeHtml(p.name)}</span><span class="rank-score">${p.score}点</span>`;
-    el.appendChild(row);
-  });
+    row.className = 'result-row reveal-in' + (rankIndex === 0 ? ' rank1 crown' : '');
+    const crown = rankIndex === 0 ? '👑 ' : '';
+    row.innerHTML = `<span class="rank-num">${crown}${rankIndex + 1}位</span><span class="rank-name">${escapeHtml(p.name)}</span><span class="rank-score">${p.score}点</span>`;
+    el.prepend(row);
+    if (rankIndex === 0) { burstConfetti(180); sfxVictory(); }
+    else sfxTick();
+    i++;
+    setTimeout(revealNext, 650);
+  }
+  revealNext();
 }
 
 $('restart-btn').addEventListener('click', () => {
