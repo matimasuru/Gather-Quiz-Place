@@ -1,1 +1,705 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クイズアリーナ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#141233;
+    --bg-mid:#1e1a4d;
+    --gold:#ffc93c;
+    --gold-dim:#c9982a;
+    --pink:#ff3e8e;
+    --cyan:#3ce7ff;
+    --green:#3ddc97;
+    --red:#ff5c5c;
+    --text:#f5f3ff;
+    --text-dim:#a7a2d6;
+    --panel:#231f5c;
+    --panel-line:#3a3480;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Noto Sans JP', sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255,201,60,0.18), transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(255,62,142,0.14), transparent 50%),
+      linear-gradient(180deg, var(--bg-deep), var(--bg-mid));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .display{font-family:'Kosugi Maru', sans-serif;}
+  #app{width:100%; max-width:640px;}
+  .screen{display:none; flex-direction:column; gap:18px;}
+  .screen.active{display:flex; animation:fadein .35s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
 
+  .stage-title{
+    font-family:'Kosugi Maru', sans-serif;
+    font-size:2.4rem;
+    text-align:center;
+    letter-spacing:.04em;
+    background:linear-gradient(90deg, var(--gold), var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin:0 0 4px 0;
+  }
+  .stage-sub{text-align:center; color:var(--text-dim); margin:0 0 12px 0; font-size:.95rem;}
+
+  .panel{
+    background:linear-gradient(180deg, var(--panel), #1a1745);
+    border:1px solid var(--panel-line);
+    border-radius:18px;
+    padding:26px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  }
+
+  .btn{
+    font-family:'Noto Sans JP', sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    padding:16px 20px;
+    border-radius:14px;
+    border:none;
+    cursor:pointer;
+    color:#1a1533;
+    background:linear-gradient(90deg, var(--gold), #ffdf80);
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .btn:hover{filter:brightness(1.07);}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.35; cursor:not-allowed; filter:none; transform:none;}
+  .btn.secondary{background:transparent; color:var(--text); border:1.5px solid var(--panel-line);}
+  .btn.pink{background:linear-gradient(90deg, var(--pink), #ff7ab0); color:#2b0f1e;}
+  .btn.block{width:100%;}
+
+  .field label{display:block; font-size:.85rem; color:var(--text-dim); margin-bottom:6px;}
+  .field input[type=text]{
+    width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--panel-line);
+    background:#100e30; color:var(--text); font-size:1rem; outline:none;
+  }
+  .field input[type=text]:focus{border-color:var(--gold);}
+  .field{margin-bottom:14px;}
+
+  .choice-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:480px){ .choice-row{grid-template-columns:1fr;} }
+
+  .room-code{
+    font-family:'Kosugi Maru', sans-serif;
+    font-size:3rem; letter-spacing:.18em; text-align:center;
+    color:var(--gold); margin:6px 0 2px 0;
+  }
+  .room-code-label{text-align:center; color:var(--text-dim); font-size:.85rem; margin-bottom:18px;}
+
+  .player-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;}
+  .player-list li{
+    background:#100e30; border:1px solid var(--panel-line); border-radius:10px;
+    padding:10px 14px; display:flex; justify-content:space-between; font-size:.95rem;
+  }
+  .player-list .score{color:var(--gold); font-weight:700;}
+
+  .double-banner{
+    text-align:center; font-family:'Kosugi Maru', sans-serif; font-size:1.3rem;
+    background:linear-gradient(90deg, var(--pink), var(--gold));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:pulse 1s infinite; display:none;
+  }
+  .double-banner.show{display:block;}
+  @keyframes pulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.06);}}
+
+  .qcounter{color:var(--text-dim); font-size:.85rem; text-align:center;}
+  .qtext{font-size:1.25rem; font-weight:700; text-align:center; line-height:1.5; margin:10px 0 4px 0;}
+
+  .timer-wrap{height:8px; border-radius:6px; background:#100e30; overflow:hidden; margin:14px 0;}
+  .timer-bar{height:100%; background:linear-gradient(90deg, var(--green), var(--gold), var(--red)); width:100%; transition:width 1s linear;}
+
+  .buzz-btn{
+    width:170px; height:170px; border-radius:50%; margin:18px auto; display:flex;
+    align-items:center; justify-content:center; font-family:'Kosugi Maru', sans-serif;
+    font-size:1.5rem; color:#2b0f1e; border:none; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #ff7ab0, var(--pink) 70%);
+    box-shadow:0 10px 0 #a4225a, 0 16px 30px rgba(255,62,142,.4);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .buzz-btn:active:not(:disabled){transform:translateY(8px); box-shadow:0 2px 0 #a4225a, 0 6px 14px rgba(255,62,142,.4);}
+  .buzz-btn:disabled{background:#3a3480; box-shadow:0 10px 0 #241f5e; color:#7c76b3; cursor:not-allowed;}
+
+  .status-line{text-align:center; font-size:1rem; color:var(--text-dim); min-height:1.4em;}
+  .status-line.win{color:var(--gold); font-weight:700;}
+
+  .choice-btn{
+    padding:14px; border-radius:12px; border:1.5px solid var(--panel-line); background:#100e30;
+    color:var(--text); font-size:.98rem; text-align:left; cursor:pointer;
+  }
+  .choice-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .choice-btn.answerable{border-color:var(--gold); box-shadow:0 0 0 2px rgba(255,201,60,.25);}
+  .choice-btn.correct{background:rgba(61,220,151,.25); border-color:var(--green);}
+  .choice-btn.wrong{background:rgba(255,92,92,.25); border-color:var(--red);}
+
+  .mini-board{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+  .mini-chip{background:#100e30; border:1px solid var(--panel-line); border-radius:20px; padding:6px 12px; font-size:.82rem;}
+  .mini-chip .n{color:var(--gold); font-weight:700; margin-left:6px;}
+
+  .result-row{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:12px; margin-bottom:10px; background:#100e30; border:1px solid var(--panel-line);}
+  .result-row.rank1{background:linear-gradient(90deg, rgba(255,201,60,.25), rgba(255,62,142,.15)); border-color:var(--gold);}
+  .rank-num{font-family:'Kosugi Maru', sans-serif; font-size:1.3rem; width:34px;}
+  .rank-name{flex:1; margin-left:8px;}
+  .rank-score{font-weight:700; color:var(--gold);}
+
+  .hint{font-size:.8rem; color:var(--text-dim); margin-top:6px; line-height:1.6;}
+  .file-drop{
+    border:2px dashed var(--panel-line); border-radius:14px; padding:26px; text-align:center; cursor:pointer;
+  }
+  .file-drop:hover{border-color:var(--gold);}
+  .file-drop input{display:none;}
+  .rowgap{display:flex; gap:10px; flex-wrap:wrap;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START -->
+  <div class="screen active" id="screen-start">
+    <h1 class="stage-title">クイズアリーナ</h1>
+    <p class="stage-sub">クイズカセットを読み込んで、みんなで早押し対決しよう</p>
+    <div class="panel">
+      <div class="field">
+        <button class="btn block" id="go-host-btn">ホストになる（カセットを読み込む）</button>
+      </div>
+      <div class="field" style="margin-top:6px;">
+        <button class="btn secondary block" id="go-join-btn">部屋に参加する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOST SETUP -->
+  <div class="screen" id="screen-host-setup">
+    <h1 class="stage-title" style="font-size:1.7rem;">カセットを読み込む</h1>
+    <div class="panel">
+      <div class="file-drop" id="file-drop">
+        <p style="margin:0 0 6px 0; font-weight:700;">クイズカセット（.xlsx）を選択</p>
+        <p class="hint" style="margin:0;">タップしてファイルを選んでください</p>
+        <input type="file" id="file-input" accept=".xlsx,.xls">
+      </div>
+      <p class="hint">
+        1行目は見出し行。列名：<b>問題</b> / <b>選択肢1〜4</b> / <b>正解</b>（番号または選択肢の文字列）/ <b>配点</b>（省略時100）/ <b>ダブル</b>（TRUEでダブルチャンス問題、省略時は一部自動抽選）。
+      </p>
+      <button class="btn secondary block" id="back-from-host-setup" style="margin-top:14px;">戻る</button>
+    </div>
+  </div>
+
+  <!-- HOST LOBBY -->
+  <div class="screen" id="screen-host-lobby">
+    <div class="panel">
+      <div class="room-code" id="room-code-display">------</div>
+      <div class="room-code-label">この部屋コードを参加者に伝えてください</div>
+      <p class="qcounter">問題数：<span id="question-count-display">0</span>問</p>
+      <p class="qcounter">参加者：<span id="host-player-count">0</span>人</p>
+      <ul class="player-list" id="host-player-list"></ul>
+      <button class="btn block" id="host-start-btn" style="margin-top:18px;">ゲームを開始する</button>
+    </div>
+  </div>
+
+  <!-- JOIN -->
+  <div class="screen" id="screen-join">
+    <h1 class="stage-title" style="font-size:1.7rem;">部屋に参加</h1>
+    <div class="panel">
+      <div class="field">
+        <label>部屋コード</label>
+        <input type="text" id="join-code" placeholder="例：AB3XQ" maxlength="8" style="text-transform:uppercase;">
+      </div>
+      <div class="field">
+        <label>ニックネーム</label>
+        <input type="text" id="join-name" placeholder="例：まああ" maxlength="12">
+      </div>
+      <button class="btn block" id="join-btn">参加する</button>
+      <button class="btn secondary block" id="back-from-join" style="margin-top:10px;">戻る</button>
+    </div>
+  </div>
+
+  <!-- PLAYER LOBBY -->
+  <div class="screen" id="screen-player-lobby">
+    <div class="panel">
+      <h2 class="stage-title" style="font-size:1.5rem;">待機中…</h2>
+      <p class="stage-sub">ホストが開始するまでお待ちください</p>
+      <ul class="player-list" id="player-lobby-list"></ul>
+    </div>
+  </div>
+
+  <!-- HOST GAME (control view) -->
+  <div class="screen" id="screen-host-game">
+    <div class="panel">
+      <p class="qcounter" id="host-qcounter"></p>
+      <div class="double-banner" id="host-double-banner">ダブルチャンス！！</div>
+      <p class="qtext" id="host-qtext"></p>
+      <div class="timer-wrap"><div class="timer-bar" id="host-timer-bar"></div></div>
+      <p class="status-line" id="host-status">早押し受付中…（残り <span id="host-timer">20</span> 秒）</p>
+      <div class="mini-board" id="host-mini-board"></div>
+    </div>
+  </div>
+
+  <!-- PLAYER GAME -->
+  <div class="screen" id="screen-player-game">
+    <div class="panel">
+      <p class="qcounter" id="player-qcounter"></p>
+      <div class="double-banner" id="player-double-banner">ダブルチャンス！！</div>
+      <p class="qtext" id="player-qtext"></p>
+      <button class="buzz-btn" id="buzz-btn">押す！</button>
+      <p class="status-line" id="player-status">早押しボタンを押そう！</p>
+      <div class="choice-row" id="player-choices"></div>
+      <div class="mini-board" id="player-mini-board"></div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <h1 class="stage-title">結果発表</h1>
+    <div class="panel" id="result-panel"></div>
+    <button class="btn secondary block" id="restart-btn">最初の画面に戻る</button>
+  </div>
+
+</div>
+
+<script type="module">
+import { joinRoom, selfId } from 'https://esm.sh/trystero@0.21.1/torrent';
+
+const APP_ID = 'maaa-quiz-arena-v1';
+const $ = (id) => document.getElementById(id);
+const showScreen = (id) => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+};
+
+const state = {
+  role: null,
+  room: null,
+  roomId: '',
+  myName: '',
+  players: {},      // peerId -> {name, score}
+  questions: [],
+  qIndex: -1,
+  buzzedId: null,
+  wrongIds: new Set(),
+  actions: {},
+};
+
+function randomRoomId(len = 5) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function setupActions(room) {
+  const [sendJoin, onJoin]         = room.makeAction('join');
+  const [sendPlayers, onPlayers]   = room.makeAction('players');
+  const [sendQuestion, onQuestion] = room.makeAction('question');
+  const [sendBuzz, onBuzz]         = room.makeAction('buzz');
+  const [sendBuzzWin, onBuzzWin]   = room.makeAction('buzzwin');
+  const [sendAnswer, onAnswer]     = room.makeAction('answer');
+  const [sendJudge, onJudge]       = room.makeAction('judge');
+  const [sendOver, onOver]         = room.makeAction('over');
+  const [sendReveal, onReveal]     = room.makeAction('reveal');
+  state.actions = { sendJoin, onJoin, sendPlayers, onPlayers, sendQuestion, onQuestion,
+    sendBuzz, onBuzz, sendBuzzWin, onBuzzWin, sendAnswer, onAnswer, sendJudge, onJudge,
+    sendOver, onOver, sendReveal, onReveal };
+}
+
+/* ---------- start screen ---------- */
+$('go-host-btn').addEventListener('click', () => showScreen('screen-host-setup'));
+$('go-join-btn').addEventListener('click', () => showScreen('screen-join'));
+$('back-from-host-setup').addEventListener('click', () => showScreen('screen-start'));
+$('back-from-join').addEventListener('click', () => showScreen('screen-start'));
+$('file-drop').addEventListener('click', () => $('file-input').click());
+
+/* ---------- host: load cassette ---------- */
+$('file-input').addEventListener('change', handleFile);
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const questions = rows.map(r => {
+      const choices = [r['選択肢1'], r['選択肢2'], r['選択肢3'], r['選択肢4']]
+        .filter(c => c !== '' && c !== null && c !== undefined);
+      let correctIndex = 0;
+      const rawCorrect = String(r['正解'] ?? '').trim();
+      if (choices.length > 0) {
+        const n = parseInt(rawCorrect, 10);
+        if (!isNaN(n) && n >= 1 && n <= choices.length) {
+          correctIndex = n - 1;
+        } else {
+          const idx = choices.findIndex(c => String(c).trim() === rawCorrect);
+          correctIndex = idx >= 0 ? idx : 0;
+        }
+      }
+      const points = parseInt(r['配点'], 10);
+      const doubleFlag = String(r['ダブル'] ?? '').toUpperCase();
+      return {
+        text: String(r['問題'] ?? r['問題文'] ?? '').trim(),
+        choices,
+        correctIndex,
+        points: isNaN(points) ? 100 : points,
+        isDouble: doubleFlag === 'TRUE' || (doubleFlag === '' && Math.random() < 0.12),
+      };
+    }).filter(q => q.text && q.choices.length >= 2);
+
+    if (questions.length === 0) {
+      alert('カセットを読み込めませんでした。列名（問題/選択肢1〜4/正解）を確認してください。');
+      return;
+    }
+    state.questions = questions;
+    startHostRoom();
+  } catch (err) {
+    alert('ファイルの読み込みに失敗しました：' + err.message);
+  }
+}
+
+function startHostRoom() {
+  state.role = 'host';
+  state.roomId = randomRoomId();
+  const room = joinRoom({ appId: APP_ID }, state.roomId);
+  state.room = room;
+  setupActions(room);
+
+  state.actions.onJoin((data, peerId) => {
+    state.players[peerId] = { name: (data.name || '名無し').slice(0, 12), score: 0 };
+    broadcastPlayers();
+    renderHostLobby();
+  });
+  room.onPeerLeave(peerId => {
+    delete state.players[peerId];
+    broadcastPlayers();
+    renderHostLobby();
+  });
+  state.actions.onBuzz((data, peerId) => handleBuzz(peerId));
+  state.actions.onAnswer((data, peerId) => handleAnswer(peerId, data.choice));
+
+  $('room-code-display').textContent = state.roomId;
+  $('question-count-display').textContent = state.questions.length;
+  renderHostLobby();
+  showScreen('screen-host-lobby');
+}
+
+function broadcastPlayers() {
+  const list = Object.entries(state.players).map(([id, p]) => ({ id, name: p.name, score: p.score }));
+  state.actions.sendPlayers({ list });
+}
+
+function renderHostLobby() {
+  const el = $('host-player-list');
+  el.innerHTML = '';
+  Object.values(state.players).forEach(p => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${escapeHtml(p.name)}</span>`;
+    el.appendChild(li);
+  });
+  $('host-player-count').textContent = Object.keys(state.players).length;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('host-start-btn').addEventListener('click', () => {
+  if (Object.keys(state.players).length === 0 && !confirm('参加者がいませんが開始しますか？')) return;
+  state.qIndex = -1;
+  nextQuestion();
+});
+
+/* ---------- host: game flow ---------- */
+let buzzTimer = null, answerTimer = null;
+
+function nextQuestion() {
+  clearInterval(buzzTimer); clearInterval(answerTimer);
+  state.qIndex++;
+  if (state.qIndex >= state.questions.length) { endGame(); return; }
+  state.buzzedId = null;
+  state.wrongIds = new Set();
+  const q = state.questions[state.qIndex];
+  state.actions.sendQuestion({
+    index: state.qIndex, total: state.questions.length,
+    text: q.text, choices: q.choices, isDouble: q.isDouble
+  });
+  $('host-qcounter').textContent = `第 ${state.qIndex + 1} 問 / 全 ${state.questions.length} 問`;
+  $('host-qtext').textContent = q.text;
+  $('host-double-banner').classList.toggle('show', q.isDouble);
+  renderHostScores();
+  showScreen('screen-host-game');
+  startBuzzWindow();
+}
+
+function startBuzzWindow() {
+  clearInterval(buzzTimer);
+  $('host-status').textContent = '早押し受付中…';
+  let t = 20;
+  $('host-timer').textContent = t;
+  $('host-timer-bar').style.width = '100%';
+  buzzTimer = setInterval(() => {
+    t--;
+    $('host-timer').textContent = t;
+    $('host-timer-bar').style.width = Math.max(0, (t / 20) * 100) + '%';
+    if (t <= 0) { clearInterval(buzzTimer); revealAndNext(); }
+  }, 1000);
+}
+
+function handleBuzz(peerId) {
+  if (state.qIndex < 0 || state.buzzedId) return;
+  if (state.wrongIds.has(peerId)) return;
+  if (!state.players[peerId]) return;
+  state.buzzedId = peerId;
+  clearInterval(buzzTimer);
+  state.actions.sendBuzzWin({ id: peerId, name: state.players[peerId].name });
+  $('host-status').textContent = `${state.players[peerId].name} さんが回答中…`;
+  startAnswerWindow();
+}
+
+function startAnswerWindow() {
+  clearInterval(answerTimer);
+  let t = 10;
+  $('host-timer').textContent = t;
+  $('host-timer-bar').style.width = '100%';
+  answerTimer = setInterval(() => {
+    t--;
+    $('host-timer').textContent = t;
+    $('host-timer-bar').style.width = Math.max(0, (t / 10) * 100) + '%';
+    if (t <= 0) { clearInterval(answerTimer); handleAnswer(state.buzzedId, -1); }
+  }, 1000);
+}
+
+function handleAnswer(peerId, choice) {
+  if (state.qIndex < 0 || peerId !== state.buzzedId) return;
+  clearInterval(answerTimer);
+  const q = state.questions[state.qIndex];
+  const correct = choice === q.correctIndex;
+  applyResult(peerId, correct, q);
+}
+
+function calcMultiplier(myScoreBefore) {
+  const scores = Object.values(state.players).map(p => p.score);
+  if (scores.length <= 1) return 1;
+  const leader = Math.max(...scores);
+  const last = Math.min(...scores);
+  const gap = leader - last;
+  if (gap <= 0) return 1;
+  const ratio = Math.max(0, Math.min(1, (leader - myScoreBefore) / gap));
+  return 0.6 + ratio * 1.4; // leader側ほど1倍に近い低倍率、最下位ほど2倍に近い高倍率
+}
+
+function applyResult(peerId, correct, q) {
+  let delta = 0;
+  if (correct) {
+    const before = state.players[peerId].score;
+    const mult = calcMultiplier(before);
+    delta = Math.round(q.points * mult * (q.isDouble ? 2 : 1));
+    state.players[peerId].score += delta;
+  } else {
+    state.wrongIds.add(peerId);
+  }
+  const scores = Object.fromEntries(Object.entries(state.players).map(([id, p]) => [id, p.score]));
+  state.actions.sendJudge({
+    id: peerId, correct, delta,
+    correctIndex: q.correctIndex,
+    correctText: q.choices[q.correctIndex],
+    scores
+  });
+  renderHostScores();
+
+  if (correct) {
+    $('host-status').textContent = `正解！ +${delta}点`;
+    setTimeout(nextQuestion, 2800);
+  } else {
+    state.buzzedId = null;
+    const remaining = Object.keys(state.players).filter(id => !state.wrongIds.has(id));
+    if (remaining.length === 0) { revealAndNext(); }
+    else { startBuzzWindow(); }
+  }
+}
+
+function revealAndNext() {
+  const q = state.questions[state.qIndex];
+  state.actions.sendReveal({ correctIndex: q.correctIndex, correctText: q.choices[q.correctIndex] });
+  $('host-status').textContent = `正解は「${q.choices[q.correctIndex]}」でした`;
+  setTimeout(nextQuestion, 2800);
+}
+
+function renderHostScores() {
+  const el = $('host-mini-board');
+  el.innerHTML = '';
+  Object.values(state.players).sort((a, b) => b.score - a.score).forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'mini-chip';
+    chip.innerHTML = `${escapeHtml(p.name)}<span class="n">${p.score}</span>`;
+    el.appendChild(chip);
+  });
+}
+
+function endGame() {
+  const ranking = Object.entries(state.players)
+    .map(([id, p]) => ({ id, name: p.name, score: p.score }))
+    .sort((a, b) => b.score - a.score);
+  state.actions.sendOver({ ranking });
+  renderResult(ranking);
+  showScreen('screen-result');
+}
+
+/* ---------- player flow ---------- */
+$('join-code').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+$('join-btn').addEventListener('click', () => {
+  const code = $('join-code').value.trim().toUpperCase();
+  const name = $('join-name').value.trim();
+  if (!code || !name) { alert('部屋コードとニックネームを入力してください'); return; }
+  startPlayer(code, name);
+});
+
+function startPlayer(code, name) {
+  state.role = 'player';
+  state.roomId = code;
+  state.myName = name;
+  const room = joinRoom({ appId: APP_ID }, code);
+  state.room = room;
+  setupActions(room);
+
+  state.actions.onPlayers(data => renderPlayerLobby(data.list));
+  state.actions.onQuestion(data => renderPlayerQuestion(data));
+  state.actions.onBuzzWin(data => renderPlayerBuzzWin(data));
+  state.actions.onJudge(data => renderPlayerJudge(data));
+  state.actions.onReveal(data => renderPlayerReveal(data));
+  state.actions.onOver(data => { renderResult(data.ranking); showScreen('screen-result'); });
+
+  state.actions.sendJoin({ name });
+  showScreen('screen-player-lobby');
+}
+
+function renderPlayerLobby(list) {
+  const el = $('player-lobby-list');
+  el.innerHTML = '';
+  list.forEach(p => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${escapeHtml(p.name)}${p.id === selfId ? '（あなた）' : ''}</span>`;
+    el.appendChild(li);
+  });
+}
+
+function renderPlayerQuestion(data) {
+  showScreen('screen-player-game');
+  $('player-qcounter').textContent = `第 ${data.index + 1} 問 / 全 ${data.total} 問`;
+  $('player-qtext').textContent = data.text;
+  $('player-double-banner').classList.toggle('show', data.isDouble);
+  $('player-status').textContent = '早押しボタンを押そう！';
+  $('buzz-btn').disabled = false;
+
+  const box = $('player-choices');
+  box.innerHTML = '';
+  data.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.disabled = true;
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      box.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+      state.actions.sendAnswer({ choice: i });
+      $('player-status').textContent = '回答を送信しました…';
+    });
+    box.appendChild(btn);
+  });
+}
+
+$('buzz-btn').addEventListener('click', () => {
+  $('buzz-btn').disabled = true;
+  state.actions.sendBuzz({});
+  $('player-status').textContent = '早押し送信！判定を待っています…';
+});
+
+function renderPlayerBuzzWin(data) {
+  $('buzz-btn').disabled = true;
+  const iAmWinner = data.id === selfId;
+  $('player-status').textContent = iAmWinner
+    ? 'あなたの番です！選択肢から選んでください'
+    : `${data.name} さんが回答中…`;
+  $('player-status').classList.toggle('win', iAmWinner);
+  document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+    b.disabled = !iAmWinner;
+    b.classList.toggle('answerable', iAmWinner);
+  });
+}
+
+function renderPlayerJudge(data) {
+  const boxBtns = document.querySelectorAll('#player-choices .choice-btn');
+  boxBtns.forEach(b => {
+    const idx = parseInt(b.dataset.idx, 10);
+    if (idx === data.correctIndex) b.classList.add('correct');
+  });
+  if (data.id === selfId) {
+    $('player-status').textContent = data.correct ? `正解！ +${data.delta}点` : '残念、不正解…';
+    $('player-status').classList.toggle('win', data.correct);
+    if (!data.correct) {
+      boxBtns.forEach(b => { if (!b.classList.contains('correct')) b.classList.add('wrong'); });
+    }
+  } else if (!data.correct) {
+    $('player-status').textContent = '不正解…次の早押しに備えよう';
+    $('buzz-btn').disabled = false;
+    boxBtns.forEach(b => b.disabled = true);
+  }
+  renderPlayerScores(data.scores);
+}
+
+function renderPlayerReveal(data) {
+  document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+    const idx = parseInt(b.dataset.idx, 10);
+    if (idx === data.correctIndex) b.classList.add('correct');
+  });
+  $('player-status').textContent = `正解は「${data.correctText}」でした`;
+}
+
+function renderPlayerScores(scores) {
+  const el = $('player-mini-board');
+  el.innerHTML = '';
+  const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  entries.forEach(([id, score]) => {
+    const chip = document.createElement('div');
+    chip.className = 'mini-chip';
+    const isMe = id === selfId;
+    chip.innerHTML = `${isMe ? 'あなた' : '???'}<span class="n">${score}</span>`;
+    el.appendChild(chip);
+  });
+}
+
+/* ---------- result ---------- */
+function renderResult(ranking) {
+  const el = $('result-panel');
+  el.innerHTML = '';
+  if (ranking.length === 0) {
+    el.innerHTML = '<p class="stage-sub">参加者がいませんでした</p>';
+    return;
+  }
+  ranking.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'result-row' + (i === 0 ? ' rank1' : '');
+    row.innerHTML = `<span class="rank-num">${i + 1}位</span><span class="rank-name">${escapeHtml(p.name)}</span><span class="rank-score">${p.score}点</span>`;
+    el.appendChild(row);
+  });
+}
+
+$('restart-btn').addEventListener('click', () => {
+  if (state.room) { try { state.room.leave(); } catch (e) {} }
+  location.reload();
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</body>
+</html>
