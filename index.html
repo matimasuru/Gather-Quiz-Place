@@ -228,7 +228,7 @@
         <input type="file" id="file-input" accept=".xlsx,.xls">
       </div>
       <p class="hint">
-        1行目は見出し行。列名：<b>問題</b> / <b>選択肢1〜4</b>（空欄なら記述式問題になります） / <b>正解</b>（選択式は番号か文字列、記述式は答え。「/」区切りで別解も指定可） / <b>配点</b>（省略時100） / <b>ダブル</b>（TRUEでダブルチャンス問題、省略時は一部自動抽選）。
+        1行目は見出し行。列名：<b>問題</b> / <b>選択肢1〜4</b>（空欄なら記述式問題になります） / <b>正解</b>（選択式は番号か文字列、記述式は答え。「/」区切りで別解も指定可） / <b>配点</b>（省略時100） / <b>ダブル</b>（TRUEでダブルチャンス問題、省略時は一部自動抽選） / <b>モード</b>（「一問一答」で全員同時回答形式。空欄なら通常の早押し形式）。
       </p>
       <button class="btn secondary block" id="back-from-host-setup" style="margin-top:14px;">戻る</button>
     </div>
@@ -342,6 +342,8 @@ const state = {
   actions: {},
   prevRanking: [],
   currentQType: 'choice',
+  currentQMode: 'buzz',
+  pendingAnswers: {},
   audioCtx: null,
 };
 
@@ -448,9 +450,10 @@ function setupActions(room) {
   const [sendJudge, onJudge]       = room.makeAction('judge');
   const [sendOver, onOver]         = room.makeAction('over');
   const [sendReveal, onReveal]     = room.makeAction('reveal');
+  const [sendAllResult, onAllResult] = room.makeAction('allresult');
   state.actions = { sendJoin, onJoin, sendPlayers, onPlayers, sendQuestion, onQuestion,
     sendBuzz, onBuzz, sendBuzzWin, onBuzzWin, sendAnswer, onAnswer, sendJudge, onJudge,
-    sendOver, onOver, sendReveal, onReveal };
+    sendOver, onOver, sendReveal, onReveal, sendAllResult, onAllResult };
 }
 
 /* ---------- start screen ---------- */
@@ -477,10 +480,13 @@ async function handleFile(e) {
       const rawCorrect = String(r['正解'] ?? '').trim();
       const points = parseInt(r['配点'], 10);
       const doubleFlag = String(r['ダブル'] ?? '').toUpperCase();
+      const modeRaw = String(r['モード'] ?? '').trim();
+      const mode = (modeRaw === '一問一答' || modeRaw === '全員' || modeRaw.toLowerCase() === 'all') ? 'all' : 'buzz';
       const base = {
         text: String(r['問題'] ?? r['問題文'] ?? '').trim(),
         points: isNaN(points) ? 100 : points,
         isDouble: doubleFlag === 'TRUE' || (doubleFlag === '' && Math.random() < 0.12),
+        mode,
       };
       if (choices.length >= 2) {
         let correctIndex = 0;
@@ -525,7 +531,12 @@ function startHostRoom() {
     renderHostLobby();
   });
   state.actions.onBuzz((data, peerId) => handleBuzz(peerId));
-  state.actions.onAnswer((data, peerId) => handleAnswer(peerId, data));
+  state.actions.onAnswer((data, peerId) => {
+    const q = state.questions[state.qIndex];
+    if (!q) return;
+    if (q.mode === 'all') storeAllAnswer(peerId, data);
+    else handleAnswer(peerId, data);
+  });
 
   $('room-code-display').textContent = state.roomId;
   $('question-count-display').textContent = state.questions.length;
@@ -589,7 +600,7 @@ function renderScoreBoard(board, elId) {
 let buzzTimer = null, answerTimer = null;
 
 function nextQuestion() {
-  clearInterval(buzzTimer); clearInterval(answerTimer);
+  clearInterval(buzzTimer); clearInterval(answerTimer); clearInterval(allTimer);
   $('host-judge-box').style.display = 'none';
   snapshotRanking();
   state.qIndex++;
@@ -599,14 +610,91 @@ function nextQuestion() {
   const q = state.questions[state.qIndex];
   state.actions.sendQuestion({
     index: state.qIndex, total: state.questions.length,
-    text: q.text, qtype: q.type, choices: q.choices, isDouble: q.isDouble
+    text: q.text, qtype: q.type, mode: q.mode, choices: q.choices, isDouble: q.isDouble
   });
-  $('host-qcounter').textContent = `第 ${state.qIndex + 1} 問 / 全 ${state.questions.length} 問`;
+  $('host-qcounter').textContent = `第 ${state.qIndex + 1} 問 / 全 ${state.questions.length} 問${q.mode === 'all' ? '（一問一答：全員同時回答）' : ''}`;
   $('host-qtext').textContent = q.text;
   $('host-double-banner').classList.toggle('show', q.isDouble);
   renderScoreBoard(buildBoard(), 'host-mini-board');
   showScreen('screen-host-game');
-  startBuzzWindow();
+  if (q.mode === 'all') startAllWindow();
+  else startBuzzWindow();
+}
+
+let allTimer = null;
+function startAllWindow() {
+  clearInterval(allTimer);
+  state.pendingAnswers = {};
+  const total = Object.keys(state.players).length;
+  $('host-status').textContent = `全員回答中…（0/${total} 人回答済み）`;
+  let t = 15;
+  $('host-timer').textContent = t;
+  $('host-timer-bar').style.width = '100%';
+  $('host-timer-wrap').classList.remove('urgent');
+  allTimer = setInterval(() => {
+    t--;
+    $('host-timer').textContent = t;
+    $('host-timer-bar').style.width = Math.max(0, (t / 15) * 100) + '%';
+    if (t <= 5 && t > 0) { $('host-timer-wrap').classList.add('urgent'); sfxTick(); }
+    if (t <= 0) { clearInterval(allTimer); resolveAllAnswer(); }
+  }, 1000);
+}
+
+function storeAllAnswer(peerId, data) {
+  if (!state.players[peerId] || state.pendingAnswers[peerId]) return;
+  state.pendingAnswers[peerId] = data;
+  const answeredCount = Object.keys(state.pendingAnswers).length;
+  const total = Object.keys(state.players).length;
+  $('host-status').textContent = `全員回答中…（${answeredCount}/${total} 人回答済み）`;
+  if (total > 0 && answeredCount >= total) { clearInterval(allTimer); resolveAllAnswer(); }
+}
+
+function resolveAllAnswer() {
+  const q = state.questions[state.qIndex];
+  const beforeScores = {};
+  for (const id in state.players) beforeScores[id] = state.players[id].score;
+  const scoresArr = Object.values(beforeScores);
+  const leader = scoresArr.length ? Math.max(...scoresArr) : 0;
+  const last = scoresArr.length ? Math.min(...scoresArr) : 0;
+  const gap = leader - last;
+
+  const results = [];
+  for (const id in state.players) {
+    const ans = state.pendingAnswers[id];
+    let correct = false;
+    if (ans) {
+      if (q.type === 'text') {
+        const norm = normalizeText(ans.text);
+        correct = norm !== '' && q.correctAnswers.some(a => normalizeText(a) === norm);
+      } else {
+        correct = ans.choice === q.correctIndex;
+      }
+    }
+    let delta = 0, streak = 0;
+    if (correct) {
+      let mult = 1;
+      if (gap > 0) { const ratio = Math.max(0, Math.min(1, (leader - beforeScores[id]) / gap)); mult = 0.6 + ratio * 1.4; }
+      streak = (state.players[id].streak || 0) + 1;
+      state.players[id].streak = streak;
+      const comboMult = 1 + Math.min(streak - 1, 5) * 0.1;
+      delta = Math.round(q.points * mult * comboMult * (q.isDouble ? 2 : 1));
+      state.players[id].score += delta;
+    } else {
+      state.players[id].streak = 0;
+    }
+    results.push({ id, correct, delta, streak, answered: !!ans });
+  }
+
+  const board = buildBoard();
+  const correctText = q.type === 'text' ? q.correctAnswers[0] : q.choices[q.correctIndex];
+  state.actions.sendAllResult({ results, correctIndex: q.type === 'choice' ? q.correctIndex : -1, correctText, board });
+  renderScoreBoard(board, 'host-mini-board');
+
+  const numCorrect = results.filter(r => r.correct).length;
+  flashFx(numCorrect > 0 ? 'correct' : 'wrong', numCorrect > 0 ? `正解者 ${numCorrect}人！` : '全員不正解…');
+  if (numCorrect > 0) { burstConfetti(90); sfxCorrect(); } else sfxWrong();
+  $('host-status').textContent = `正解は「${correctText}」／正解者 ${numCorrect}人`;
+  setTimeout(nextQuestion, 3200);
 }
 
 function startBuzzWindow() {
@@ -771,6 +859,7 @@ function startPlayer(code, name) {
   state.actions.onBuzzWin(data => renderPlayerBuzzWin(data));
   state.actions.onJudge(data => renderPlayerJudge(data));
   state.actions.onReveal(data => renderPlayerReveal(data));
+  state.actions.onAllResult(data => renderPlayerAllResult(data));
   state.actions.onOver(data => { showScreen('screen-result'); showResultsSequential(data.ranking); });
 
   state.actions.sendJoin({ name });
@@ -804,13 +893,16 @@ function startPlayerTimer(seconds) {
 function renderPlayerQuestion(data) {
   showScreen('screen-player-game');
   state.currentQType = data.qtype;
-  $('player-qcounter').textContent = `第 ${data.index + 1} 問 / 全 ${data.total} 問`;
+  state.currentQMode = data.mode;
+  $('player-qcounter').textContent = `第 ${data.index + 1} 問 / 全 ${data.total} 問${data.mode === 'all' ? '（一問一答）' : ''}`;
   $('player-qtext').textContent = data.text;
   $('player-double-banner').classList.toggle('show', data.isDouble);
-  $('player-status').textContent = '早押しボタンを押そう！';
   $('player-status').classList.remove('win');
+  const isAll = data.mode === 'all';
+  $('buzz-btn').style.display = isAll ? 'none' : '';
   $('buzz-btn').disabled = false;
-  startPlayerTimer(20);
+  $('player-status').textContent = isAll ? '回答を送信しよう！（全員同時に回答できます）' : '早押しボタンを押そう！';
+  startPlayerTimer(isAll ? 15 : 20);
 
   const box = $('player-choices');
   box.innerHTML = '';
@@ -818,17 +910,18 @@ function renderPlayerQuestion(data) {
     box.style.display = 'none';
     $('player-text-wrap').style.display = 'flex';
     $('player-text-input').value = '';
-    $('player-text-input').disabled = true;
-    $('player-text-input').classList.remove('answerable');
-    $('player-text-submit').disabled = true;
+    $('player-text-input').disabled = !isAll;
+    $('player-text-input').classList.toggle('answerable', isAll);
+    $('player-text-submit').disabled = !isAll;
+    if (isAll) $('player-text-input').focus();
   } else {
     box.style.display = 'grid';
     $('player-text-wrap').style.display = 'none';
     data.choices.forEach((c, i) => {
       const btn = document.createElement('button');
-      btn.className = 'choice-btn';
+      btn.className = 'choice-btn' + (isAll ? ' answerable' : '');
       btn.textContent = c;
-      btn.disabled = true;
+      btn.disabled = !isAll;
       btn.dataset.idx = i;
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
@@ -923,6 +1016,30 @@ function renderPlayerReveal(data) {
   }
   $('buzz-btn').disabled = true;
   $('player-status').textContent = `正解は「${data.correctText}」でした`;
+}
+
+function renderPlayerAllResult(data) {
+  clearInterval(playerTimer);
+  if (state.currentQType === 'choice') {
+    document.querySelectorAll('#player-choices .choice-btn').forEach(b => {
+      const idx = parseInt(b.dataset.idx, 10);
+      if (idx === data.correctIndex) b.classList.add('correct');
+      b.disabled = true;
+    });
+  } else {
+    $('player-text-input').disabled = true;
+    $('player-text-submit').disabled = true;
+  }
+  const mine = data.results.find(r => r.id === selfId);
+  if (mine) {
+    $('player-status').textContent = mine.correct
+      ? `正解！ +${mine.delta}点${mine.streak >= 2 ? `（${mine.streak}連続！）` : ''}`
+      : (mine.answered ? `残念、不正解…（正解：${data.correctText}）` : `時間切れ…（正解：${data.correctText}）`);
+    $('player-status').classList.toggle('win', mine.correct);
+    flashFx(mine.correct ? 'correct' : 'wrong', mine.correct ? 'せいかい！' : 'ざんねん…');
+    if (mine.correct) { burstConfetti(70); sfxCorrect(); } else sfxWrong();
+  }
+  renderScoreBoard(data.board, 'player-mini-board');
 }
 
 /* ---------- results: suspenseful reveal ---------- */
