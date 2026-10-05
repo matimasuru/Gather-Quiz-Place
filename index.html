@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブザースタジオ v3.3</title>
+<title>ブザースタジオ v3.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -30,10 +30,10 @@ body.shake .wrap{animation:sh .45s}
 @keyframes sh{0%,100%{transform:none}20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
 
 .top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;max-width:820px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;font-size:22px;color:var(--ink)}
+.brand{white-space:nowrap;display:flex;align-items:center;gap:10px;font-size:22px;color:var(--ink)}
 .mark{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#FFC0B0,#FF5A4E 55%,#E0283B);box-shadow:0 4px 0 #A81830,0 0 0 4px #fff}
 .top-r{display:flex;gap:10px;align-items:center}
-.chip{background:#fff;color:var(--pri);border-radius:999px;padding:4px 16px;font-weight:900;font-size:14px;box-shadow:0 4px 12px rgba(79,107,255,.18)}
+.chip{white-space:nowrap;background:#fff;color:var(--pri);border-radius:999px;padding:4px 16px;font-weight:900;font-size:14px;box-shadow:0 4px 12px rgba(79,107,255,.18)}
 .icon{width:42px;height:42px;border-radius:50%;background:#fff;border:0;box-shadow:0 4px 12px rgba(79,107,255,.18);display:grid;place-items:center;cursor:pointer;color:var(--pri)}
 .icon:active{transform:scale(.94)}
 :focus-visible{outline:4px solid rgba(79,107,255,.5);outline-offset:3px}
@@ -220,13 +220,13 @@ body.shake .wrap{animation:sh .45s}
 .modal .btn{margin-top:16px}
 
 
-.vtag{font-size:11px;font-weight:800;background:#fff;color:var(--pri);border-radius:999px;padding:0 8px;margin-left:2px}
-.vbadge{position:fixed;left:10px;bottom:10px;z-index:80;background:#fff;color:var(--pri);border:0;border-radius:999px;padding:7px 16px;font:inherit;font-weight:900;font-size:12px;box-shadow:0 4px 14px rgba(79,107,255,.35);cursor:pointer}
-.diagpanel{position:fixed;left:10px;right:10px;bottom:54px;z-index:80;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(31,37,71,.3);padding:10px 14px;font-size:12px}
+.vtag{font:inherit;font-size:12px;font-weight:800;background:#fff;color:var(--pri);border:0;border-radius:999px;padding:1px 10px;margin-left:2px;cursor:pointer;box-shadow:0 2px 8px rgba(79,107,255,.2)}
+.topbar{position:sticky;top:0;z-index:30;background:rgba(232,238,255,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.diagpanel{position:fixed;top:62px;left:50%;transform:translateX(-50%);width:calc(100% - 20px);z-index:80;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(31,37,71,.3);padding:10px 14px;font-size:12px}
 .diagbar{display:flex;justify-content:space-between;align-items:center}
 .diagpanel pre{white-space:pre-wrap;word-break:break-all;margin-top:6px;max-height:40vh;overflow:auto;color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-weight:500}
 .ver{text-align:center;margin-top:28px;font-size:12px;color:var(--muted);font-weight:500}
-@media (max-width:520px){.choices{grid-template-columns:1fr}.tile{width:44px;height:56px;font-size:28px}.wrap{padding:6px 12px 60px}}
+@media (max-width:520px){.brand{font-size:15px;gap:7px}.chip{font-size:12px;padding:3px 10px}.top-r{gap:6px}.icon{width:36px;height:36px}.vtag{font-size:11px;padding:0 8px}.mark{width:24px;height:24px}.top{padding:10px 12px}.tags{order:3;width:100%}.tnum{order:2}.telop-head{padding:14px 16px 10px}.qtext{padding:16px 18px 24px}.status{padding-top:10px}.choices{grid-template-columns:1fr}.tile{width:44px;height:56px;font-size:28px}.wrap{padding:6px 12px 60px}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
 </head>
@@ -236,13 +236,13 @@ body.shake .wrap{animation:sh .45s}
 <div id="flash"></div>
 <div id="stamp" class="stamp" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="o" cx="100" cy="100" r="70"/><path class="x" d="M42 42L158 158M158 42L42 158"/></svg><div id="stampCap" class="cap"></div></div>
 
-<header class="top">
- <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><span class="vtag">v3.3</span></div>
+<header class="topbar"><div class="top">
+ <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.4</button></div>
  <div class="top-r">
   <span id="roomchip" class="chip" hidden></span>
   <button id="mute" class="icon" aria-label="効果音のオンオフ"><svg id="muteIco" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
  </div>
-</header>
+</div></header>
 
 <main class="wrap">
  <section id="v-home" class="view">
@@ -330,7 +330,6 @@ body.shake .wrap{animation:sh .45s}
  
 </main>
 
-<button id="vbadge" class="vbadge" type="button" aria-label="バージョンと通信ログ">v3.3 ・ ログ</button>
 <div id="diagPanel" class="diagpanel" hidden><div class="diagbar"><b>通信ログ</b><button id="diagCopy" class="link" type="button">コピー</button></div><pre id="diag">まだ何も実行していません。</pre></div>
 <div id="lost" class="modal" hidden><div class="card"><h2>接続が切れました</h2><p>司会との接続が切れました。トップに戻って入り直してください。</p><button class="btn" id="lostBtn" type="button">トップに戻る</button></div></div>
 
@@ -556,7 +555,7 @@ $('#vbadge').onclick=()=>{$('#diagPanel').hidden=!$('#diagPanel').hidden;};
 $('#diagCopy').onclick=async()=>{try{await navigator.clipboard.writeText(DLOG.join('\n'));$('#diagCopy').textContent='コピーしました';}catch{$('#diagCopy').textContent='長押しで選択してください';}setTimeout(()=>$('#diagCopy').textContent='コピー',2000);};
 const DLOG=[];
 function dbg(m){DLOG.push(new Date().toLocaleTimeString()+'  '+m);const el=$('#diag');if(el){el.textContent=DLOG.join('\n');el.scrollTop=1e9;}try{console.log('[bz]',m);}catch{}}
-dbg('ページ読み込み完了 v3.3');
+dbg('ページ読み込み完了 v3.4');
 async function loadPeerJS(){
  if(window.Peer)return;
  for(const u of PEER_LIBS){
@@ -857,6 +856,7 @@ function applyState(s){
  const changed=!prev||prev.phase!==s.phase||prev.qi!==s.qi;
  if(changed){
   lastChars=-1;actKey='';localSent=false;picked=-1;
+  try{window.scrollTo({top:0,behavior:'instant'});}catch{window.scrollTo(0,0);}
   if(s.phase==='q'){
    if(prev&&prev.qi===s.qi&&(prev.phase==='answer'||prev.phase==='judge')) typeStart=now-frozen*TYPE_MS;
    else if(!prev){typeStart=now-999999;} else{typeStart=now;frozen=0;}
