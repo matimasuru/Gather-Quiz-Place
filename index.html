@@ -74,6 +74,12 @@ body.shake .wrap{animation:sh .45s}
 .slot-lip{display:none}
 .slot.over{background:#E8EDFF;border-color:var(--pri);transform:scale(1.02)}
 .slot.busy{opacity:.6;pointer-events:none}
+.doors.single{grid-template-columns:minmax(0,520px);justify-content:center}
+.adminrow{text-align:center;margin-top:18px}
+.adminrow .link{color:var(--muted);font-weight:500;font-size:13px}
+.adminform{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:520px;margin:10px auto 0}
+.adminform .inp{flex:1;min-width:200px}
+.adminform .err{flex-basis:100%;margin-top:0}
 .code{text-transform:uppercase;letter-spacing:.35em;text-align:center;font-size:26px;margin-bottom:16px}
 
 .lobby{display:grid;grid-template-columns:370px 1fr;gap:22px;padding-top:12px;align-items:start}
@@ -90,7 +96,12 @@ body.shake .wrap{animation:sh .45s}
 .pill{display:inline-flex;align-items:center;gap:8px;background:var(--soft);border-radius:999px;padding:6px 16px;font-weight:800}
 .pill i{width:14px;height:14px;border-radius:50%}
 .pill.off{opacity:.45}
-.opts{display:grid;gap:10px;margin-top:8px}
+.opts{display:grid;gap:12px;margin-top:8px}
+.field2{display:grid;gap:4px;font-weight:800;font-size:14px}
+.sel{max-width:none;width:100%;padding:9px 12px;font-size:15px}
+.btn{white-space:nowrap}
+#start{justify-self:start}
+.qr-row{flex-wrap:wrap}
 .ck{display:flex;gap:10px;align-items:center;font-weight:700;cursor:pointer}
 .ck input{width:20px;height:20px;accent-color:var(--pri)}
 #start{margin-top:18px}
@@ -238,8 +249,8 @@ body.shake .wrap{animation:sh .45s}
    </div>
    <div class="buzzer-art" aria-hidden="true"><i></i></div>
   </div>
-  <div class="doors">
-   <div class="card door">
+  <div id="doors" class="doors single">
+   <div id="hostDoor" class="card door" hidden>
     <h2>司会をする</h2>
     <p>カセットを差し込むと、部屋が自動でできます。</p>
     <label id="slot" class="slot" tabindex="0"><input id="file" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt" hidden><span class="slot-lip"></span><span id="slotT">カセットをドロップ<br><small>またはタップして選ぶ</small></span></label>
@@ -254,6 +265,8 @@ body.shake .wrap{animation:sh .45s}
     <div id="joinerr" class="err" hidden></div>
    </div>
   </div>
+  <div class="adminrow"><button id="adminLink" class="link" type="button">管理者ログイン</button></div>
+  <form id="adminForm" class="adminform" hidden><input id="adminPass" class="inp" type="password" placeholder="管理者パスコード" autocomplete="off" aria-label="管理者パスコード"><button class="btn" type="submit">開く</button><div id="adminErr" class="err" hidden>パスコードが違います。</div></form>
  </section>
 
  <section id="v-lobby" class="view" hidden>
@@ -269,6 +282,9 @@ body.shake .wrap{animation:sh .45s}
     <div id="lbWarn" class="warn" hidden></div>
     <div id="players" class="plist"></div>
     <div id="hostOpts" class="opts" hidden>
+     <label class="field2" id="pairDirWrap" hidden>どちらを問題にしますか？<select id="o-dir" class="inp sel"></select></label>
+     <label class="field2">出題形式（カセットで指定がない問題）<select id="o-mode" class="inp sel"><option value="mix">早押しと一問一答を混ぜる</option><option value="buzz">すべて早押し</option><option value="all">すべて一問一答</option></select></label>
+     <label class="ck" id="pairOpt" hidden><input type="checkbox" id="o-choice" checked>選択肢がない問題を、ほかの答えを使った選択式に自動で変換する</label>
      <label class="ck"><input type="checkbox" id="o-auto" checked>結果と順位を自動で進める</label>
      <label class="ck"><input type="checkbox" id="o-manual" checked>記述式で不一致の回答は、司会が正誤を判定する</label>
      <label class="ck"><input type="checkbox" id="o-shuffle">出題順をシャッフルする</label>
@@ -323,6 +339,7 @@ const LIBS=['https://esm.sh/trystero@0.21.5/torrent','https://esm.sh/trystero/to
 // <parser>
 const N=s=>String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s_\-:.,'"\u2019]/g,'');
 const mkSet=a=>new Set(a.map(N));
+const splitAns=t=>String(t).split(/[\/／|｜;；\n]+/).map(x=>x.trim()).filter(Boolean);
 const AL={
  q:mkSet(['問題','問題文','質問','設問','出題','クイズ','question','q']),
  a:mkSet(['正解','答え','こたえ','解答','答','回答','正答','answer','ans','correct']),
@@ -363,9 +380,22 @@ function parseRows(rows){
   });
   col.ch.sort((x,y)=>x.k-y.k||x.i-y.i);
  } else {
-  const first=(rows.find(r=>r&&r.some(c=>String(c==null?'':c).trim()))||[]);
+  const data=rows.filter(r=>r&&r.some(c=>String(c==null?'':c).trim()));
+  const first=data[0]||[];
   seen=first.map(x=>String(x==null?'':x).trim()).filter(Boolean);
-  if(first.length>=3){ col.q=0; col.ch=[1,2,3,4].map((i,k)=>({i,k})); col.a=5; col.pts=6; hr=-1; }
+  const w=seen.length;
+  if(w>=6){ col.q=0; col.ch=[1,2,3,4].map((i,k)=>({i,k})); col.a=5; col.pts=6; hr=-1; }
+  else if(w>=2){
+   const cl=i=>String(first[i]==null?'':first[i]).trim();
+   const isHead=/単語|意味|問題|答|質問|用語|語句|英語|日本語|word|meaning|term|question|answer/i.test(cl(0)+' '+cl(1));
+   const out2=[];
+   for(const r of data.slice(isHead?1:0)){
+    const a=String(r[0]==null?'':r[0]).trim(), b=String(r[1]==null?'':r[1]).trim();
+    if(!a||!b) continue;
+    out2.push({text:a,kind:'text',mode:null,pts:100,dbl0:null,time:0,exp:'',answers:splitAns(b),pair:true,left:a,right:b});
+   }
+   return {questions:out2,warnings,seen,pair:true,heads:isHead?[cl(0),cl(1)]:null};
+  }
   else return {questions:[],warnings,seen,noHeader:true};
  }
  if(col.q<0) return {questions:[],warnings,seen,noHeader:true};
@@ -374,8 +404,9 @@ function parseRows(rows){
   const text=cell(col.q); if(!text) continue;
   const line=r+1;
   const m=N(cell(col.mode));
-  let mode='buzz',force=null;
+  let mode=null,force=null;
   if(/一問一答|全員|同時|一斉|all|simul/.test(m)) mode='all';
+  else if(/早押し|buzz|早/.test(m)) mode='buzz';
   if(/記述|入力|text/.test(m)) force='text';
   else if(/選択|択|choice/.test(m)) force='choice';
   const choices=col.ch.map(c=>cell(c.i)).filter(Boolean);
@@ -405,7 +436,7 @@ function parseSheets(sheets){ // sheets: [{name,rows}]
  for(const sh of sheets){
   const r=parseRows(sh.rows);
   if(r.seen&&r.seen.length&&!seen.length) seen=r.seen;
-  if(r.questions.length){best={questions:r.questions,warnings:r.warnings,sheet:sh.name};break;}
+  if(r.questions.length){best={questions:r.questions,warnings:r.warnings,sheet:sh.name,pair:r.pair,heads:r.heads};break;}
   if(r.warnings.length&&!warns.length) warns=r.warnings;
  }
  if(best) return {ok:true,...best};
@@ -508,7 +539,7 @@ function bannerMsg(t){const b=document.createElement('div');b.className='banner'
 
 /* ===================== 通信・共通状態 ===================== */
 let me={id:'',name:''},isHost=false,room=null,sendMsg=null,hostPeer=null,G=null,S=null,roomCode='',joinTimer=0;
-let deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
+let picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
 const TYPE_MS=70,ROW=58;
 
 async function openRoom(code){
@@ -544,7 +575,7 @@ function pushState(){ const s=snap(); applyState(s); if(sendMsg) sendMsg({t:'S',
 /* ===================== ホスト側ゲーム進行 ===================== */
 const DUR={intro:2600,reveal:5200,rank:5200};
 function newGame(c){
- return {c,opts:{auto:true,manual:true,shuffle:false},order:[],qi:-1,phase:'lobby',players:new Map(),tm:null,deadline:0,timed:false,pseq:0,evid:0,ev:null,
+ return {c,opts:{auto:true,manual:true,shuffle:false,mode:'mix',autochoice:true,dir:'lr'},order:[],qi:-1,phase:'lobby',players:new Map(),tm:null,deadline:0,timed:false,pseq:0,evid:0,ev:null,
   buzzer:null,locked:new Set(),answers:new Map(),qRemain:0,qDur:0,qStart:0,reveal:null,judge:null,judgeQ:[],verdict:new Map(),wrong:[],ci:0};
 }
 const ev=(type,o={})=>({id:++G.evid,type,...o});
@@ -579,7 +610,7 @@ function snap(){
  const s={seq:++g.pseq,phase:g.phase,players,hostId:me.id,title:g.c.title,total:g.order.length||g.c.questions.length,qi:g.qi,ev:g.ev,code:roomCode};
  if(g.phase==='lobby'){
   const qs=g.c.questions;
-  s.meta={n:qs.length,buzz:qs.filter(x=>x.mode==='buzz').length,all:qs.filter(x=>x.mode==='all').length,text:qs.filter(x=>x.kind==='text').length,warn:g.c.warnings||[]};
+  s.meta={n:qs.length,buzz:qs.filter(x=>x.mode==='buzz').length,all:qs.filter(x=>x.mode==='all').length,none:qs.filter(x=>!x.mode).length,pair:qs.some(x=>x.pair),heads:g.c.heads||null,warn:g.c.warnings||[]};
  }
  if(q&&g.phase!=='lobby'&&g.phase!=='final'){
   s.q={text:q.text,choices:q.kind==='choice'?q.choices:null,kind:q.kind,mode:q.mode,pts:q.pts,dbl:q.dbl,fin:q.fin};
@@ -596,10 +627,27 @@ function hostHandle(d,pid){
  else if(d.t==='buzz')onBuzz(pid);
  else if(d.t==='ans')onAnswer(pid,d.v);
 }
+function pairText(Q,lr,h){
+ if(h&&/意味/.test(h[1])){
+  if(lr) return `「${Q}」の意味は？`;
+  return /英/.test(h[0])?`「${Q}」を英語にすると？`:`「${Q}」にあてはまる言葉は？`;
+ }
+ return Q;
+}
 function startGame(){
  const g=G; if(!activePlayers().length)return;
  const qs=g.c.questions.map(q=>({...q})); if(g.opts.shuffle)shuffle(qs);
- qs.forEach(q=>{q.fin=false;q.dbl=q.dbl0===true;});
+ for(const q of qs){ if(q.pair){ const lr=g.opts.dir==='lr'; q.text=pairText(lr?q.left:q.right,lr,g.c.heads); q.answers=splitAns(lr?q.right:q.left); } }
+ const pool=qs.filter(q=>q.pair).map(q=>q.answers[0]);
+ qs.forEach(q=>{
+  q.fin=false; q.dbl=q.dbl0===true;
+  if(!q.mode) q.mode=g.opts.mode==='mix'?(Math.random()<.5?'buzz':'all'):g.opts.mode;
+  if(q.pair&&g.opts.autochoice&&pool.length>=4){
+   const right=q.answers[0];
+   const wrong=shuffle([...new Set(pool.filter(a=>norm(a)!==norm(right)))]).slice(0,3);
+   if(wrong.length>=3){const ch=shuffle([right,...wrong]);q.kind='choice';q.choices=ch;q.ans=ch.indexOf(right);}
+  }
+ });
  if(qs.length>=4){const l=qs[qs.length-1];l.fin=true;l.dbl=false;}
  const free=qs.filter(q=>q.dbl0===null&&!q.fin);
  const want=Math.max(qs.length>=4?1:0,Math.round(free.length*.2));
@@ -748,7 +796,7 @@ function applyState(s){
  if(s.left!=null){deadline=now+s.left;dur=s.dur;} else deadline=0;
  const changed=!prev||prev.phase!==s.phase||prev.qi!==s.qi;
  if(changed){
-  lastChars=-1;actKey='';localSent=false;
+  lastChars=-1;actKey='';localSent=false;picked=-1;
   if(s.phase==='q'){
    if(prev&&prev.qi===s.qi&&(prev.phase==='answer'||prev.phase==='judge')) typeStart=now-frozen*TYPE_MS;
    else if(!prev){typeStart=now-999999;} else{typeStart=now;frozen=0;}
@@ -788,7 +836,12 @@ function renderLobby(){
  if(qrCode!==code&&window.QRCode){qrCode=code;$('#qr').innerHTML='';new QRCode($('#qr'),{text:joinUrl(code),width:132,height:132,colorDark:'#1F2547',colorLight:'#ffffff'});}
  $('#lbTitle').textContent=s.title||'クイズ';
  if(s.meta){
-  $('#lbMeta').textContent=`全${s.meta.n}問（早押し ${s.meta.buzz}・一問一答 ${s.meta.all}・記述式 ${s.meta.text}）`;
+  $('#lbMeta').textContent=`全${s.meta.n}問`+(s.meta.pair?'（2列の表として読み込みました）':`（早押し指定 ${s.meta.buzz}・一問一答指定 ${s.meta.all}・指定なし ${s.meta.none}）`);
+  $('#pairOpt').hidden=!(isHost&&s.meta.pair);
+  $('#pairDirWrap').hidden=!(isHost&&s.meta.pair);
+  if(isHost&&s.meta.pair){const h=s.meta.heads,key=(h||[]).join('|')+'x',sel=$('#o-dir');
+   if(sel.dataset.k!==key){sel.dataset.k=key;const L=h?`「${h[0]}」`:'左の列',R=h?`「${h[1]}」`:'右の列';
+    sel.innerHTML=`<option value="lr">${L}を見て、${R}を答える</option><option value="rl">${R}を見て、${L}を答える</option>`;sel.value=G.opts.dir;}}
   const w=$('#lbWarn'); if(isHost&&s.meta.warn.length){w.hidden=false;w.innerHTML=`読み込めなかった行があります（それ以外は使えます）<ul>${s.meta.warn.slice(0,6).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;} else w.hidden=true;
  }
  $('#players').innerHTML=s.players.filter(p=>!p.sp).map(p=>`<span class="pill${p.on?'':' off'}"><i style="background:${COLORS[p.ci]}"></i>${esc(p.name)}</span>`).join('')||'<span class="small">参加者を待っています</span>';
@@ -830,7 +883,7 @@ function buildAct(s,q,sp){
  const key=[s.phase,s.qi,s.buzzer,s.locked.includes(me.id)?1:0,s.answered.includes(me.id)?1:0,s.judge?s.judge.pid:'',sp?1:0].join('|');
  if(key===actKey)return; actKey=key;
  const act=$('#act'); let h='';
- const choices=(en)=>`<div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}" data-i="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>`;
+ const choices=(en)=>`<div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}${picked===i?' sel':''}" data-i="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>`;
  const form=`<form class="ansform" autocomplete="off"><input id="ansin" class="inp" maxlength="60" placeholder="答えを入力" aria-label="答え"><button class="btn" type="submit">解答する</button></form>`;
  let focus=false;
  if(s.phase==='q'&&q.mode==='buzz'){
@@ -856,7 +909,7 @@ function buildAct(s,q,sp){
 }
 $('#act').addEventListener('click',e=>{
  const b=e.target.closest('[data-i]');
- if(b&&!b.disabled&&!localSent){localSent=true;b.classList.add('sel');$$('#act .ch').forEach(x=>x.disabled=true);toHost({t:'ans',v:Number(b.dataset.i)});return;}
+ if(b&&!b.disabled&&!localSent){localSent=true;picked=Number(b.dataset.i);b.classList.add('sel');$$('#act .ch').forEach(x=>x.disabled=true);toHost({t:'ans',v:Number(b.dataset.i)});return;}
  const j=e.target.closest('[data-j]'); if(j){hostJudge(j.dataset.j==='1');return;}
  if(e.target.closest('#buzzbtn'))buzz();
 });
@@ -951,6 +1004,16 @@ $('#finalBtns').addEventListener('click',e=>{
 $('#lostBtn').onclick=()=>{location.href=location.pathname;};
 
 /* ===================== トップ画面 ===================== */
+const ADMIN_HASH='a6b80ef2af347261a297a8237e6f44e87ab6d7f56e260c5b07c6ff9ff6993b58';
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+let admin=false; try{admin=sessionStorage.getItem('bz-admin')===ADMIN_HASH;}catch{}
+function applyAdmin(){$('#hostDoor').hidden=!admin;$('#doors').classList.toggle('single',!admin);$('#adminLink').hidden=admin;if(admin)$('#adminForm').hidden=true;}
+$('#adminLink').onclick=()=>{$('#adminForm').hidden=false;$('#adminPass').focus();};
+$('#adminForm').addEventListener('submit',async e=>{e.preventDefault();let h='';try{h=await sha($('#adminPass').value);}catch{}
+ if(h===ADMIN_HASH){admin=true;try{sessionStorage.setItem('bz-admin',ADMIN_HASH);}catch{}$('#adminErr').hidden=true;applyAdmin();}
+ else{$('#adminErr').hidden=false;}});
+const gh=new URLSearchParams(location.search).get('genhash'); if(gh) sha(gh).then(h=>prompt('このハッシュを ADMIN_HASH に貼り付けてください',h));
+applyAdmin();
 const nickEl=$('#nick');
 try{nickEl.value=localStorage.getItem('bz-nick')||'';}catch{}
 const getNick=()=>{const v=nickEl.value.trim().slice(0,12);try{localStorage.setItem('bz-nick',v);}catch{}return v;};
@@ -964,6 +1027,7 @@ slot.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile
 fileEl.addEventListener('change',()=>{const f=fileEl.files[0];if(f)handleFile(f);fileEl.value='';});
 $('#tpl').onclick=saveTemplate;
 async function handleFile(f){
+ if(!admin)return;
  ac(); $('#loaderr').hidden=true; slot.classList.add('busy'); $('#slotT').textContent='読み込み中…';
  const reset=()=>{slot.classList.remove('busy');$('#slotT').innerHTML='カセットをドロップ<br><small>またはタップして選ぶ</small>';};
  let res;
@@ -971,14 +1035,14 @@ async function handleFile(f){
  if(!res.ok){
   reset();
   const seen=res.seen.length?`見つかった列名：${res.seen.slice(0,10).map(x=>`「${esc(x)}」`).join('')}`:'表の中身が見つかりませんでした。';
-  loadErr(`カセットを読み込めませんでした。<ul><li>${seen}</li><li>1行目に「問題」「正解」の列名が必要です。選択式は「選択肢1」〜「選択肢4」も並べてください。</li><li>「カセットのひな形を保存する」で書き方を確認できます。</li>${res.warnings.slice(0,4).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`);
+  loadErr(`カセットを読み込めませんでした。<ul><li>${seen}</li><li>「問題」「正解」の列名がある表、または左に問題・右に答えを並べた2列の表が使えます。選択式は「選択肢1」〜「選択肢4」も並べてください。</li><li>「カセットのひな形を保存する」で書き方を確認できます。</li>${res.warnings.slice(0,4).map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`);
   return;
  }
  res.warnings=res.warnings||[];
  const name=getNick()||'司会';
  me.name=name; isHost=true; roomCode=makeCode();
  try{await openRoom(roomCode);}catch(e){isHost=false;reset();loadErr('通信機能を読み込めませんでした。ネットワーク接続を確認して、もう一度お試しください。');return;}
- G=newGame({title:res.title,questions:res.questions,warnings:res.warnings});
+ G=newGame({title:res.title,questions:res.questions,warnings:res.warnings,heads:res.heads||null});
  G.players.set(me.id,mkPlayer(me.id,name));
  pushState();
  history.replaceState(null,'',location.pathname);
@@ -998,6 +1062,9 @@ $('#join').onclick=async()=>{
 $('#code').addEventListener('keydown',e=>{if(e.key==='Enter')$('#join').click();});
 $('#copy').onclick=async()=>{const b=$('#copy');try{await navigator.clipboard.writeText(joinUrl(roomCode));b.textContent='コピーしました';}catch{b.textContent=joinUrl(roomCode);}setTimeout(()=>b.textContent='リンクをコピー',2000);};
 /* ロビー設定 */
+$('#o-dir').onchange=e=>{G.opts.dir=e.target.value;};
+$('#o-mode').onchange=e=>{G.opts.mode=e.target.value;};
+$('#o-choice').onchange=e=>{G.opts.autochoice=e.target.checked;};
 $('#o-auto').onchange=e=>{G.opts.auto=e.target.checked;};
 $('#o-manual').onchange=e=>{G.opts.manual=e.target.checked;};
 $('#o-shuffle').onchange=e=>{G.opts.shuffle=e.target.checked;};
