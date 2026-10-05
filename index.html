@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブザースタジオ v3.4</title>
+<title>ブザースタジオ v3.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -198,6 +198,29 @@ body.shake .wrap{animation:sh .45s}
 .fr.r1 .nm{font-size:26px}.fr.r1 .sc{font-size:36px}.fr.r1 .rk2{font-size:46px;color:var(--ink)}
 .fr.r1 .nm small{color:#7A5A00}
 .fr.r2 .rk2{color:#8A93B8}.fr.r3 .rk2{color:#C0793A}
+.rooms{text-align:left;margin-bottom:6px}
+.rooms-h{display:flex;justify-content:space-between;align-items:center;font-weight:900;margin-bottom:8px}
+.roomlist{display:grid;gap:8px;max-height:260px;overflow:auto;padding:2px}
+.room{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-radius:16px;background:var(--soft);padding:12px 14px;font:inherit;color:var(--ink);cursor:pointer;box-shadow:0 3px 0 #D5DCFF;transition:transform .08s}
+.room:active{transform:translateY(3px);box-shadow:none}
+.room b{display:block;font-size:16px}
+.room span{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.room>div{flex:1;min-width:0}
+.room b,.room span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room i{font-style:normal;background:linear-gradient(180deg,#6A83FF,var(--pri));color:#fff;border-radius:999px;padding:4px 16px;font-weight:900;font-size:14px}
+.room.playing i{background:#9AA3D6}
+.noroom{background:var(--soft);border-radius:16px;padding:14px;color:var(--muted);font-weight:700;font-size:13px;text-align:center}
+.dots::after{content:'';animation:dt 1.4s steps(4,end) infinite}
+@keyframes dt{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.orline{margin:12px 0 8px}
+.raceMore{text-align:center;margin-top:10px}
+.more{margin-top:10px}
+.more summary{cursor:pointer;color:var(--pri);font-weight:800;text-align:center;padding:6px}
+.fr.sm{padding:8px 14px;grid-template-columns:40px 1fr auto;box-shadow:0 4px 12px rgba(79,107,255,.1)}
+.fr.sm .rk2{font-size:18px}.fr.sm .nm{font-size:15px}.fr.sm .sc{font-size:18px}
+.jall{margin-top:10px}
+.aw{display:inline-block;background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border-radius:999px;padding:0 8px;margin-left:6px;font-size:11px;font-weight:800}
+.kick{border:0;background:#fff;color:var(--red);width:20px;height:20px;border-radius:50%;font:inherit;font-weight:900;line-height:1;cursor:pointer;padding:0}
 .fbtns{display:flex;gap:16px;justify-content:center;margin-top:30px;flex-wrap:wrap}
 
 .stamp{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);z-index:55;pointer-events:none;text-align:center}
@@ -237,7 +260,7 @@ body.shake .wrap{animation:sh .45s}
 <div id="stamp" class="stamp" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="o" cx="100" cy="100" r="70"/><path class="x" d="M42 42L158 158M158 42L42 158"/></svg><div id="stampCap" class="cap"></div></div>
 
 <header class="topbar"><div class="top">
- <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.4</button></div>
+ <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.6</button></div>
  <div class="top-r">
   <span id="roomchip" class="chip" hidden></span>
   <button id="mute" class="icon" aria-label="効果音のオンオフ"><svg id="muteIco" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
@@ -264,7 +287,8 @@ body.shake .wrap{animation:sh .45s}
    </div>
    <div class="card door">
     <h2>部屋に入る</h2>
-    <p>司会の画面に出ている部屋コードを入力します。</p>
+    <div class="rooms"><div class="rooms-h"><span>いま開いている部屋</span><span id="scanState" class="small">探しています…</span></div><div id="roomList" class="roomlist"></div></div>
+    <p class="small orline">見つからないときは、司会の画面に出ている部屋コードを入力してください。</p>
     <input id="code" class="inp code" maxlength="5" placeholder="部屋コード" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <button id="join" class="btn" type="button">入室する</button>
     <div id="joinerr" class="err" hidden></div>
@@ -285,11 +309,13 @@ body.shake .wrap{animation:sh .45s}
     <h2 id="lbTitle"></h2>
     <p id="lbMeta" class="small"></p>
     <div id="lbWarn" class="warn" hidden></div>
+    <p id="pcount" class="small"></p>
     <div id="players" class="plist"></div>
     <div id="hostOpts" class="opts" hidden>
      <label class="field2" id="pairDirWrap" hidden>どちらを問題にしますか？<select id="o-dir" class="inp sel"></select></label>
      <label class="field2">出題形式（カセットで指定がない問題）<select id="o-mode" class="inp sel"><option value="mix">早押しと一問一答を混ぜる</option><option value="buzz">すべて早押し</option><option value="all">すべて一問一答</option></select></label>
      <label class="ck" id="pairOpt" hidden><input type="checkbox" id="o-choice" checked>選択肢がない問題を、ほかの答えを使った選択式に自動で変換する</label>
+     <label class="ck"><input type="checkbox" id="o-public" checked>部屋を「いま開いている部屋」の一覧に公開する</label>
      <label class="ck"><input type="checkbox" id="o-auto" checked>結果と順位を自動で進める</label>
      <label class="ck"><input type="checkbox" id="o-manual" checked>記述式で不一致の回答は、司会が正誤を判定する</label>
      <label class="ck"><input type="checkbox" id="o-shuffle">出題順をシャッフルする</label>
@@ -297,6 +323,7 @@ body.shake .wrap{animation:sh .45s}
      <button id="start" class="btn big" type="button">ゲームを始める</button>
     </div>
     <p id="waitmsg" class="small" hidden>司会がゲームを始めるのを待っています。</p>
+    <button id="leave" class="btn sub" type="button" hidden>退出する</button>
    </div>
   </div>
  </section>
@@ -316,6 +343,7 @@ body.shake .wrap{animation:sh .45s}
    <aside class="card race">
     <h3>いまの順位</h3>
     <div id="race" class="racebox"></div>
+    <p id="raceMore" class="small raceMore"></p>
     <p class="legend">名前の横の×は、いまの得点倍率です。トップは小さく、下位ほど大きくなります。</p>
    </aside>
   </div>
@@ -547,6 +575,7 @@ function shake(){if(reduce)return;document.body.classList.remove('shake');void d
 function bannerMsg(t){const b=document.createElement('div');b.className='banner';b.textContent=t;document.body.appendChild(b);setTimeout(()=>b.remove(),1700);}
 
 /* ===================== 通信・共通状態 ===================== */
+let myTok='';try{myTok=sessionStorage.getItem('bz-tok')||'';if(!myTok){myTok=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('bz-tok',myTok);}}catch{myTok=Math.random().toString(36).slice(2);}
 let me={id:'',name:''},isHost=false,peer=null,conns=new Map(),hostConn=null,sendMsg=null,hostPeer=null,G=null,S=null,roomCode='',joinTimer=0;
 let picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
 const TYPE_MS=70,ROW=58;
@@ -555,7 +584,7 @@ $('#vbadge').onclick=()=>{$('#diagPanel').hidden=!$('#diagPanel').hidden;};
 $('#diagCopy').onclick=async()=>{try{await navigator.clipboard.writeText(DLOG.join('\n'));$('#diagCopy').textContent='コピーしました';}catch{$('#diagCopy').textContent='長押しで選択してください';}setTimeout(()=>$('#diagCopy').textContent='コピー',2000);};
 const DLOG=[];
 function dbg(m){DLOG.push(new Date().toLocaleTimeString()+'  '+m);const el=$('#diag');if(el){el.textContent=DLOG.join('\n');el.scrollTop=1e9;}try{console.log('[bz]',m);}catch{}}
-dbg('ページ読み込み完了 v3.4');
+dbg('ページ読み込み完了 v3.6');
 async function loadPeerJS(){
  if(window.Peer)return;
  for(const u of PEER_LIBS){
@@ -565,6 +594,89 @@ async function loadPeerJS(){
  }
  throw new Error('lib');
 }
+/* ===================== 部屋の自動探索（ビーコン） ===================== */
+const SLOTS=12, slotId=i=>'bzs-r'+i;
+let beacon=null,beaconBusy=false;
+function beaconInfo(){
+ const g=G; return {code:roomCode,title:g.c.title,host:me.name,n:members().filter(p=>p.connected).length,phase:g.phase,qi:g.qi+1,total:g.order.length||g.c.questions.length};
+}
+async function startBeacon(){
+ if(beacon||beaconBusy||!isHost)return; beaconBusy=true;
+ try{
+  await loadPeerJS();
+  for(let i=1;i<=SLOTS&&isHost&&G&&G.opts.public;i++){
+   const pb=await new Promise(res=>{
+    const b=new Peer(slotId(i),{config:{iceServers:ICE}}); let d=false;
+    const fin=v=>{if(!d){d=true;clearTimeout(t);res(v?b:null);}};
+    const t=setTimeout(()=>{try{b.destroy();}catch{}fin(false);},8000);
+    b.on('open',()=>fin(true));
+    b.on('error',e=>{if(!d){try{b.destroy();}catch{}fin(false);}else dbg('一覧公開エラー '+(e&&e.type));});
+   });
+   if(!pb)continue;
+   if(!(isHost&&G&&G.opts.public)){try{pb.destroy();}catch{}break;}
+   beacon=pb; dbg('一覧に公開しました（枠'+i+'）');
+   pb.on('connection',c=>{
+    c.on('data',d=>{if(d&&d.t==='probe'){try{c.send({t:'info',i:beaconInfo()});}catch{}}});
+    c.on('error',()=>{});
+   });
+   pb.on('disconnected',()=>{try{pb.reconnect();}catch{}});
+   return;
+  }
+  dbg('一覧には公開されていません（枠が満員か、設定でオフです）');
+ }catch(e){dbg('一覧公開に失敗しました');}
+ finally{beaconBusy=false;}
+}
+function stopBeacon(){try{if(beacon)beacon.destroy();}catch{} beacon=null;}
+
+let scan={peer:null,timer:0,rooms:new Map(),misses:new Map(),on:false};
+async function startScan(){
+ if(scan.on||isHost)return; scan.on=true; renderRooms();
+ try{await loadPeerJS();}catch{scan.on=false;$('#scanState').textContent='探索を使えません';return;}
+ if(!scan.on)return;
+ const sp=new Peer(undefined,{config:{iceServers:ICE}}); scan.peer=sp;
+ sp.on('error',e=>{
+  if(e&&e.type==='peer-unavailable'){const m=/bzs-r(\d+)/.exec(e.message||'');if(m)missSlot(Number(m[1]));}
+  else dbg('探索エラー type='+(e&&e.type));
+ });
+ sp.on('open',()=>{dbg('部屋の自動探索を開始');scanTick();scan.timer=setInterval(scanTick,6000);});
+ sp.on('disconnected',()=>{try{sp.reconnect();}catch{}});
+}
+function stopScan(){
+ clearInterval(scan.timer);
+ try{if(scan.peer)scan.peer.destroy();}catch{}
+ scan={peer:null,timer:0,rooms:new Map(),misses:new Map(),on:false};
+ renderRooms();
+}
+function scanTick(){
+ const sp=scan.peer; if(!sp||sp.destroyed||document.hidden)return;
+ for(let i=1;i<=SLOTS;i++){
+  const r=scan.rooms.get(i); if(r&&Date.now()-r.seen<20000)continue;
+  let c; try{c=sp.connect(slotId(i),{serialization:'json',reliable:true});}catch{continue;}
+  let got=false;
+  const kill=setTimeout(()=>{if(!got){try{c.close();}catch{}}},7000);
+  c.on('open',()=>{try{c.send({t:'probe'});}catch{}});
+  c.on('data',d=>{if(d&&d.t==='info'&&d.i){got=true;clearTimeout(kill);scan.rooms.set(i,{...d.i,slot:i,seen:Date.now()});scan.misses.set(i,0);renderRooms();try{c.close();}catch{}}});
+  c.on('error',()=>{});
+ }
+ renderRooms();
+}
+function missSlot(i){
+ const n=(scan.misses.get(i)||0)+1; scan.misses.set(i,n);
+ if(scan.rooms.has(i)&&n>=2){scan.rooms.delete(i);renderRooms();}
+}
+function renderRooms(){
+ const list=$('#roomList'); if(!list)return;
+ const rooms=[...scan.rooms.values()].filter(r=>Date.now()-r.seen<50000).sort((a,b)=>a.slot-b.slot);
+ const st=$('#scanState');
+ if(!scan.on){st.textContent='';list.innerHTML='';return;}
+ st.innerHTML=rooms.length?`${rooms.length}件 ・ <span class="dots">探索中</span>`:'<span class="dots">探しています</span>';
+ list.innerHTML=rooms.length?rooms.map(r=>{
+  const state=r.phase==='lobby'?'募集中':r.phase==='final'?'終了':`ゲーム中（第${r.qi}問）`;
+  return `<button class="room${r.phase==='lobby'?'':' playing'}" data-code="${esc(r.code)}" type="button"><div><b>${esc(r.title)}</b><span>司会 ${esc(r.host)} ・ ${r.n}人 ・ ${state}</span></div><i>入る</i></button>`;
+ }).join(''):'<div class="noroom">開いている部屋はまだありません。司会が部屋を作ると、ここに自動で表示されます。</div>';
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&scan.on)scanTick();});
+
 function closeNet(){try{if(peer)peer.destroy();}catch{} peer=null;hostConn=null;conns=new Map();sendMsg=null;hostPeer=null;}
 async function openRoom(code,asHost){
  await loadPeerJS();
@@ -597,7 +709,7 @@ async function openRoom(code,asHost){
     if(done)return; tries++; dbg('司会(bzs-'+code+')へ接続 試行'+tries+'/3');
     const c=peer.connect('bzs-'+code,{reliable:true,serialization:'json'}); hostConn=c; hostPeer='host';
     const watch=setTimeout(()=>{ if(!c.open&&!done){dbg('  → 9秒たっても経路が確立しません');try{c.close();}catch{} if(tries<3)attempt(); else fail(new Error('timeout'));} },9000);
-    c.on('open',()=>{clearTimeout(watch);dbg('司会との経路確立 → 入室を送信');sendMsg=d=>{if(c.open)c.send(d);};c.send({t:'hello',name:me.name});ok();});
+    c.on('open',()=>{clearTimeout(watch);dbg('司会との経路確立 → 入室を送信');sendMsg=d=>{if(c.open)c.send(d);};c.send({t:'hello',name:me.name,tok:myTok});ok();});
     c.on('data',d=>onMsg(d,'host'));
     c.on('close',()=>{clearTimeout(watch);if(done&&c===hostConn){dbg('司会との接続が切れました');$('#lost').hidden=false;}});
     c.on('error',e=>dbg('接続エラー '+(e&&e.message||e)));
@@ -616,6 +728,8 @@ async function openRoom(code,asHost){
 function onMsg(d,from){
  if(!d||typeof d!=='object')return;
  if(isHost){hostHandle(d,from);return;}
+ if(d.t==='full'){$('#lost h2').textContent='満員です';$('#lost p').textContent='この部屋は参加人数の上限に達しています。';$('#lost').hidden=false;try{closeNet();}catch{}return;}
+ if(d.t==='kick'){$('#lost h2').textContent='退出になりました';$('#lost p').textContent='司会によって部屋から外されました。';$('#lost').hidden=false;try{closeNet();}catch{}return;}
  if(d.t==='S'){if(joinTimer)dbg('司会から状態を受信');clearTimeout(joinTimer);joinTimer=0;applyState(d.s);}
 }
 function onLeave(id){
@@ -629,12 +743,18 @@ function onLeave(id){
  } else if(id===hostPeer){ $('#lost').hidden=false; }
 }
 function toHost(msg){ if(isHost)hostHandle(msg,me.id); else if(sendMsg)sendMsg(msg); }
-function pushState(){ const s=snap(); applyState(s); if(sendMsg) sendMsg({t:'S',s}); }
+let pushT=0,pushLast=0;
+function doPush(){pushLast=Date.now();const s=snap();applyState(s);if(sendMsg)sendMsg({t:'S',s});}
+function pushState(now){
+ if(now){clearTimeout(pushT);pushT=0;doPush();return;}
+ if(pushT)return;
+ pushT=setTimeout(()=>{pushT=0;doPush();},Math.max(0,60-(Date.now()-pushLast)));
+}
 
 /* ===================== ホスト側ゲーム進行 ===================== */
 const DUR={intro:2600,reveal:5200,rank:5200};
 function newGame(c){
- return {c,opts:{auto:true,manual:true,shuffle:false,mode:'mix',autochoice:true,dir:'lr'},order:[],qi:-1,phase:'lobby',players:new Map(),tm:null,deadline:0,timed:false,pseq:0,evid:0,ev:null,
+ return {c,opts:{auto:true,manual:true,shuffle:false,public:true,mode:'mix',autochoice:true,dir:'lr'},order:[],qi:-1,phase:'lobby',players:new Map(),tm:null,deadline:0,timed:false,pseq:0,evid:0,ev:null,
   buzzer:null,locked:new Set(),answers:new Map(),qRemain:0,qDur:0,qStart:0,reveal:null,judge:null,judgeQ:[],verdict:new Map(),wrong:[],ci:0};
 }
 const ev=(type,o={})=>({id:++G.evid,type,...o});
@@ -644,14 +764,27 @@ const clearTimer=()=>clearTimeout(G.tm);
 const members=()=>[...G.players.values()].filter(p=>!p.spectator);
 const activePlayers=()=>members().filter(p=>p.connected);
 const allAnswered=()=>activePlayers().every(p=>G.answers.has(p.id));
-function mkPlayer(id,name){return {id,name,score:0,shown:0,streak:0,best:0,connected:true,spectator:false,ci:G.ci++%COLORS.length,pr:null};}
-function addPlayer(id,name){
+function mkPlayer(id,name){return {id,name,score:0,shown:0,streak:0,best:0,ok:0,tok:'',connected:true,spectator:false,ci:G.ci++%COLORS.length,pr:null};}
+function remap(p,id){
+ const g=G,old=p.id,oc=conns.get(old);
+ g.players.delete(old); p.id=id; p.connected=true; g.players.set(id,p);
+ if(g.buzzer===old)g.buzzer=id;
+ if(g.locked.has(old)){g.locked.delete(old);g.locked.add(id);}
+ if(g.answers.has(old)){g.answers.set(id,g.answers.get(old));g.answers.delete(old);}
+ if(g.verdict.has(old)){g.verdict.set(id,g.verdict.get(old));g.verdict.delete(old);}
+ for(const j of g.judgeQ){if(j.pid===old)j.pid=id;if(j.pids)j.pids=j.pids.map(x=>x===old?id:x);}
+ if(oc&&old!==id){conns.delete(old);try{oc.close();}catch{}}
+}
+const MAX_PLAYERS=80;
+function addPlayer(id,name,tok){
  name=(name||'').trim().slice(0,12)||'ゲスト';
- const ex=[...G.players.values()].find(p=>p.name===name&&!p.connected&&p.id!==id);
- if(ex){G.players.delete(ex.id);ex.id=id;ex.connected=true;G.players.set(id,ex);return;}
+ if(tok){const ex=[...G.players.values()].find(p=>p.tok===tok&&p.id!==id);if(ex){remap(ex,id);return;}}
  if(G.players.has(id)){G.players.get(id).connected=true;return;}
+ const ex2=[...G.players.values()].find(p=>p.name===name&&!p.connected&&p.id!==id);
+ if(ex2){remap(ex2,id);if(tok)ex2.tok=tok;return;}
  let n=name,k=2; while([...G.players.values()].some(p=>p.name===n)) n=name+k++;
- const p=mkPlayer(id,n);
+ if(members().length>=MAX_PLAYERS)return false;
+ const p=mkPlayer(id,n); p.tok=tok||'';
  if(G.phase!=='lobby'&&members().length){p.score=p.shown=Math.min(...members().map(x=>x.score));}
  G.players.set(id,p);
 }
@@ -665,7 +798,7 @@ function multMap(){
 const rankOf=id=>{const ps=members(),p=G.players.get(id);return 1+ps.filter(o=>o.score>p.score).length;};
 function snap(){
  const g=G,q=cur(),mm=multMap();
- const players=[...g.players.values()].map(p=>({id:p.id,name:p.name,score:p.shown,streak:p.streak,b:p.best,on:p.connected,sp:p.spectator,ci:p.ci,pr:p.pr,m:mm[p.id]??1}));
+ const players=[...g.players.values()].map(p=>({id:p.id,name:p.name,score:p.shown,streak:p.streak,b:p.best,c:p.ok,on:p.connected,sp:p.spectator,ci:p.ci,pr:p.pr,m:mm[p.id]??1}));
  const s={seq:++g.pseq,phase:g.phase,players,hostId:me.id,title:g.c.title,total:g.order.length||g.c.questions.length,qi:g.qi,ev:g.ev,code:roomCode};
  if(g.phase==='lobby'){
   const qs=g.c.questions;
@@ -675,14 +808,14 @@ function snap(){
   s.q={text:q.text,choices:q.kind==='choice'?q.choices:null,kind:q.kind,mode:q.mode,pts:q.pts,dbl:q.dbl,fin:q.fin};
   s.buzzer=g.buzzer; s.locked=[...g.locked]; s.answered=[...g.answers.keys()];
   if(g.timed){s.left=Math.max(0,g.deadline-Date.now());s.dur=g.qDur;}
-  if(g.phase==='judge'&&g.judge) s.judge={...g.judge,ans:q.kind==='text'?q.answers:[]};
+  if(g.phase==='judge'&&g.judge) s.judge={pid:g.judge.pid,text:g.judge.text,k:(g.judge.pids||[1]).length,rest:g.judgeQ.length-1,ans:q.kind==='text'?q.answers:[]};
   if(g.phase==='reveal'||g.phase==='rank') s.rev=g.reveal;
  }
  return s;
 }
 function hostHandle(d,pid){
  if(!G)return;
- if(d.t==='hello'){addPlayer(pid,d.name);pushState();}
+ if(d.t==='hello'){if(addPlayer(pid,d.name,String(d.tok||'').slice(0,40))===false){if(sendMsg)sendMsg({t:'full'},pid);return;}pushState();}
  else if(d.t==='buzz')onBuzz(pid);
  else if(d.t==='ans')onAnswer(pid,d.v);
 }
@@ -712,7 +845,7 @@ function startGame(){
  const want=Math.max(qs.length>=4?1:0,Math.round(free.length*.2));
  shuffle(free).slice(0,want).forEach(q=>q.dbl=true);
  g.order=qs; g.qi=-1;
- for(const p of g.players.values()){p.score=p.shown=0;p.streak=0;p.best=0;p.pr=null;}
+ for(const p of g.players.values()){p.score=p.shown=0;p.streak=0;p.best=0;p.ok=0;p.pr=null;}
  nextQuestion();
 }
 function nextQuestion(){
@@ -756,11 +889,17 @@ function onAnswer(pid,v){
 }
 function hostJudge(ok){
  const g=G; if(!g||g.phase!=='judge'||!g.judgeQ.length)return;
- const j=g.judgeQ.shift(); g.verdict.set(j.pid,ok);
+ const j=g.judgeQ.shift(); for(const id of (j.pids||[j.pid]))g.verdict.set(id,ok);
  if(g.judgeQ.length){g.judge=g.judgeQ[0];pushState();return;}
  g.judge=null;
  if(cur().mode==='buzz'){ if(ok)winBuzz(j.pid,j.text); else wrongBuzz(j.pid,'wrong',j.text); }
  else scoreAll();
+}
+function hostJudgeRest(){
+ const g=G; if(!g||g.phase!=='judge')return;
+ for(const j of g.judgeQ)for(const id of (j.pids||[j.pid]))g.verdict.set(id,false);
+ g.judgeQ=[]; g.judge=null;
+ if(cur().mode==='buzz'){const pid=g.buzzer;wrongBuzz(pid,'wrong');} else scoreAll();
 }
 function calc(p,q,m,speed){
  const sb=1+Math.min(p.streak,5)*0.1, qm=q.fin?3:(q.dbl?2:1);
@@ -769,7 +908,7 @@ function calc(p,q,m,speed){
 }
 function winBuzz(pid,val){
  const g=G,q=cur(),p=g.players.get(pid),mm=multMap();
- const r=calc(p,q,mm[pid],1); p.score+=r.gain; p.streak++; p.best=Math.max(p.best,p.streak);
+ const r=calc(p,q,mm[pid],1); p.score+=r.gain; p.streak++; p.ok++; p.best=Math.max(p.best,p.streak);
  r.ok=true; r.ans=showGiven(q,val);
  g.ev=ev('ok',{pid,gain:r.gain,streak:p.streak});
  toReveal({winner:pid,res:{[pid]:r}});
@@ -786,13 +925,14 @@ function wrongBuzz(pid,why,val){
  } else { toReveal({}); }
 }
 function endAll(){
- const g=G,q=cur(); clearTimer(); g.timed=false; const pend=[];
+ const g=G,q=cur(); clearTimer(); g.timed=false; const pend=[],grp=new Map();
  for(const p of members()){
   const a=g.answers.get(p.id); if(!a)continue;
   if(verdictOf(q,a.v))g.verdict.set(p.id,true);
-  else if(q.kind==='text'&&g.opts.manual)pend.push({pid:p.id,text:a.v});
+  else if(q.kind==='text'&&g.opts.manual){const k=norm(a.v);if(!grp.has(k))grp.set(k,{pid:p.id,text:a.v,pids:[p.id]});else grp.get(k).pids.push(p.id);}
   else g.verdict.set(p.id,false);
  }
+ pend.push(...grp.values());
  if(pend.length){g.phase='judge';g.judgeQ=pend;g.judge=pend[0];pushState();}
  else scoreAll();
 }
@@ -803,7 +943,7 @@ function scoreAll(){
   if(a&&g.verdict.get(p.id)===true){
    const ratio=Math.max(0,1-a.el/g.qDur);
    const r=calc(p,q,mm[p.id],1+0.3*ratio); r.ok=true; r.ans=showGiven(q,a.v);
-   p.score+=r.gain; p.streak++; p.best=Math.max(p.best,p.streak); r.streak=p.streak; res[p.id]=r; okN++;
+   p.score+=r.gain; p.streak++; p.ok++; p.best=Math.max(p.best,p.streak); r.streak=p.streak; res[p.id]=r; okN++;
   } else { p.streak=0; res[p.id]={ok:false,gain:0,ans:a?showGiven(q,a.v):null}; }
  }
  g.ev=ev('reveal',{n:okN}); toReveal({res});
@@ -825,13 +965,14 @@ function toFinal(){
 }
 function resetToLobby(){
  const g=G; clearTimer(); g.phase='lobby'; g.qi=-1; g.order=[]; g.timed=false; g.ev=null;
- for(const p of g.players.values()){p.score=p.shown=0;p.streak=0;p.best=0;p.pr=null;}
+ for(const p of g.players.values()){p.score=p.shown=0;p.streak=0;p.best=0;p.ok=0;p.pr=null;}
  pushState();
 }
 function hostNext(){
  const g=G; if(!g)return;
  if(g.phase==='intro'){clearTimer();beginQ();}
  else if(g.phase==='q'){ if(cur().mode==='all')endAll(); else{clearTimer();g.ev=ev('timeup');toReveal({});} }
+ else if(g.phase==='answer'){clearTimer();wrongBuzz(g.buzzer,'timeout');}
  else if(g.phase==='reveal'){clearTimer();toRank();}
  else if(g.phase==='rank'){clearTimer();nextQuestion();}
 }
@@ -848,7 +989,12 @@ function chars(){
  if(s.phase==='answer'||s.phase==='judge')return Math.min(L,frozen);
  return L;
 }
+let wl=null;
+async function keepAwake(){try{if('wakeLock' in navigator&&!wl&&document.visibilityState==='visible'){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null;});}}catch{}}
+document.addEventListener('visibilitychange',()=>{if(S)keepAwake();});
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch{}};
 function applyState(s){
+ keepAwake();
  const prev=S; const now=performance.now();
  if(prev&&prev.phase==='q'&&prev.q) frozen=Math.min(prev.q.text.length,Math.floor((now-typeStart)/TYPE_MS));
  S=s;
@@ -870,9 +1016,9 @@ function playEvent(e){
  const isMe=e.pid===me.id;
  switch(e.type){
   case 'intro': SFX.intro(); if(S.q&&(S.q.dbl||S.q.fin)) setTimeout(()=>SFX.dbl(),450); break;
-  case 'buzz': SFX.buzz(); break;
-  case 'ng': SFX.ng(); flash('ng'); shake(); stamp('ng',e.pen?`${nameOf(e.pid)}  −${e.pen}`:nameOf(e.pid)); break;
-  case 'ok': SFX.ok(); flash('ok'); stamp('ok',`${nameOf(e.pid)}  +${e.gain}`); burst(isMe?170:70); if(isMe&&e.streak>=2)bannerMsg(`${e.streak}連続正解！`); break;
+  case 'buzz': SFX.buzz(); if(isMe)vib(40); break;
+  case 'ng': SFX.ng(); if(isMe)vib(220); flash('ng'); shake(); stamp('ng',e.pen?`${nameOf(e.pid)}  −${e.pen}`:nameOf(e.pid)); break;
+  case 'ok': SFX.ok(); if(isMe)vib([60,40,60]); flash('ok'); stamp('ok',`${nameOf(e.pid)}  +${e.gain}`); burst(isMe?170:70); if(isMe&&e.streak>=2)bannerMsg(`${e.streak}連続正解！`); break;
   case 'reveal': { const r=S.rev&&S.rev.res&&S.rev.res[me.id];
    if(r&&r.ok){SFX.ok();flash('ok');stamp('ok',`+${r.gain}`);burst(130);if(r.streak>=2)bannerMsg(`${r.streak}連続正解！`);}
    else if(r&&!meP().sp){SFX.ng();flash('ng');stamp('ng','');}
@@ -904,8 +1050,9 @@ function renderLobby(){
     sel.innerHTML=`<option value="lr">${L}を見て、${R}を答える</option><option value="rl">${R}を見て、${L}を答える</option>`;sel.value=G.opts.dir;}}
   const w=$('#lbWarn'); if(isHost&&s.meta.warn.length){w.hidden=false;w.innerHTML=`読み込めなかった行があります（それ以外は使えます）<ul>${s.meta.warn.slice(0,6).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;} else w.hidden=true;
  }
- $('#players').innerHTML=s.players.filter(p=>!p.sp).map(p=>`<span class="pill${p.on?'':' off'}"><i style="background:${COLORS[p.ci]}"></i>${esc(p.name)}</span>`).join('')||'<span class="small">参加者を待っています</span>';
- $('#hostOpts').hidden=!isHost; $('#waitmsg').hidden=isHost;
+ $('#pcount').textContent=`参加者 ${s.players.filter(p=>!p.sp&&p.on).length}人`;
+ $('#players').innerHTML=s.players.filter(p=>!p.sp).map(p=>`<span class="pill${p.on?'':' off'}"><i style="background:${COLORS[p.ci]}"></i>${esc(p.name)}${isHost&&p.id!==me.id?`<button class="kick" data-k="${esc(p.id)}" aria-label="${esc(p.name)}を退出させる" type="button">×</button>`:''}</span>`).join('')||'<span class="small">参加者を待っています</span>';
+ $('#hostOpts').hidden=!isHost; $('#waitmsg').hidden=isHost; $('#leave').hidden=isHost;
  if(isHost)$('#start').disabled=!s.players.some(p=>!p.sp&&p.on);
 }
 const joinUrl=c=>location.origin+location.pathname+'?room='+c;
@@ -940,7 +1087,7 @@ function renderGame(){
  renderRace();
 }
 function buildAct(s,q,sp){
- const key=[s.phase,s.qi,s.buzzer,s.locked.includes(me.id)?1:0,s.answered.includes(me.id)?1:0,s.judge?s.judge.pid:'',sp?1:0].join('|');
+ const key=[s.phase,s.qi,s.buzzer,s.locked.includes(me.id)?1:0,s.answered.includes(me.id)?1:0,s.judge?s.judge.pid+':'+s.judge.rest:'',sp?1:0].join('|');
  if(key===actKey)return; actKey=key;
  const act=$('#act'); let h='';
  const choices=(en)=>`<div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}${picked===i?' sel':''}" data-i="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>`;
@@ -955,14 +1102,19 @@ function buildAct(s,q,sp){
   const mine=s.buzzer===me.id;
   if(q.kind==='choice')h=choices(mine); else if(mine){h=form;focus=true;}
  } else if(s.phase==='judge'){
-  if(isHost&&s.judge) h=`<div class="card judge"><p><b>${esc(nameOf(s.judge.pid))}</b>さんの回答</p><div class="jans">${esc(s.judge.text)}</div><p class="small">正解：${esc(s.judge.ans.join(' / '))}</p><div class="jbtns"><button class="btn" data-j="1" type="button">正解にする</button><button class="btn red" data-j="0" type="button">不正解にする</button></div></div>`;
+  if(isHost&&s.judge) h=`<div class="card judge"><p><b>${esc(nameOf(s.judge.pid))}</b>さんの回答</p><div class="jans">${esc(s.judge.text)}</div><p class="small">正解：${esc(s.judge.ans.join(' / '))}</p>${s.judge.k>1?`<p class="small">ほか${s.judge.k-1}人も同じ回答です（まとめて判定されます）</p>`:''}<div class="jbtns"><button class="btn" data-j="1" type="button">正解にする</button><button class="btn red" data-j="0" type="button">不正解にする</button></div>${s.judge.rest>0?`<button class="link jall" data-jall="1" type="button">残り${s.judge.rest}件をすべて不正解にして進む</button>`:''}</div>`;
  } else if(s.phase==='reveal'&&s.rev){
   const r=s.rev,rows=Object.entries(r.res).sort((a,b)=>b[1].gain-a[1].gain);
-  h=`<div class="card panel"><div class="ansline"><span>正解</span>${esc(r.ans)}</div>${r.alt.length?`<p class="alt">別解：${esc(r.alt.join(' / '))}</p>`:''}${r.exp?`<p class="exp">${esc(r.exp)}</p>`:''}
-  <ul class="reslist">${rows.map(([id,x])=>{
+  const mk=([id,x])=>{
    const bd=x.ok?[x.m!==1?`逆転補正×${x.m}`:'',x.sb>1?`連続×${x.sb}`:'',x.qm>1?`×${x.qm}`:'',x.sp>1.01?`速さ×${x.sp}`:''].filter(Boolean).join(' ・ '):'';
    const g2=x.gain>0?`+${x.gain}`:x.gain<0?`−${-x.gain}`:'0';
-   return `<li class="${x.ok?'ok':'ng'}"><span class="v">${x.ok?'○':'×'}</span><span class="n">${esc(nameOf(id))}</span><span class="g2">${g2}</span><span class="a">${x.ans==null?'未回答':esc(x.ans)}</span><span class="bd">${esc(bd)}</span></li>`;}).join('')||'<li class="ng"><span class="v">−</span><span class="n">回答なし</span><span class="g2"></span></li>'}</ul></div>`;
+   return `<li class="${x.ok?'ok':'ng'}"><span class="v">${x.ok?'○':'×'}</span><span class="n">${esc(nameOf(id))}${id===me.id?'（あなた）':''}</span><span class="g2">${g2}</span><span class="a">${x.ans==null?'未回答':esc(x.ans)}</span><span class="bd">${esc(bd)}</span></li>`;};
+  const okN=rows.filter(([,x])=>x.ok).length;
+  let shown=rows,rest=[];
+  if(rows.length>8){const top=rows.slice(0,5),mine=rows.find(([id])=>id===me.id);shown=(mine&&!top.includes(mine))?[...top,mine]:top;rest=rows.filter(x=>!shown.includes(x));}
+  h=`<div class="card panel"><div class="ansline"><span>正解</span>${esc(r.ans)}</div>${r.alt.length?`<p class="alt">別解：${esc(r.alt.join(' / '))}</p>`:''}${r.exp?`<p class="exp">${esc(r.exp)}</p>`:''}
+  ${rows.length>1?`<p class="small" style="margin-top:12px;text-align:center">正解 ${okN}人 ／ ${rows.length}人</p>`:''}
+  <ul class="reslist">${shown.map(mk).join('')||'<li class="ng"><span class="v">−</span><span class="n">回答なし</span><span class="g2"></span></li>'}</ul>${rest.length?`<details class="more"><summary>ほかの${rest.length}人の結果を見る</summary><ul class="reslist">${rest.map(mk).join('')}</ul></details>`:''}</div>`;
  }
  act.innerHTML=h;
  if(focus){const i=$('#ansin');if(i)setTimeout(()=>i.focus(),50);}
@@ -971,6 +1123,7 @@ $('#act').addEventListener('click',e=>{
  const b=e.target.closest('[data-i]');
  if(b&&!b.disabled&&!localSent){localSent=true;picked=Number(b.dataset.i);b.classList.add('sel');$$('#act .ch').forEach(x=>x.disabled=true);toHost({t:'ans',v:Number(b.dataset.i)});return;}
  const j=e.target.closest('[data-j]'); if(j){hostJudge(j.dataset.j==='1');return;}
+ if(e.target.closest('[data-jall]')){hostJudgeRest();return;}
  if(e.target.closest('#buzzbtn'))buzz();
 });
 $('#act').addEventListener('submit',e=>{
@@ -988,17 +1141,21 @@ const rowEls=new Map();
 function renderRace(){
  const s=S,box=$('#race'),ps=s.players.filter(p=>!p.sp);
  const sorted=[...ps].sort((a,b)=>b.score-a.score);
+ const limit=s.phase==='rank'?12:6;
+ const vis=sorted.slice(0,limit);
+ const mi=sorted.findIndex(p=>p.id===me.id);
+ const pinned=mi>=limit?sorted[mi]:null; if(pinned)vis.push(pinned);
  const max=Math.max(100,...ps.map(p=>p.score));
- box.style.height=(ps.length*ROW)+'px';
+ box.style.height=(vis.length*ROW+(pinned?12:0))+'px';
  const seen=new Set();
- sorted.forEach((p,i)=>{
+ vis.forEach((p,i)=>{
   seen.add(p.id); let el=rowEls.get(p.id);
   if(!el||!el.isConnected){
    el=document.createElement('div'); el.className='rr';
    el.innerHTML='<div class="rl"><span class="rk"></span><span class="rn"></span><span class="rc"></span><span class="rs disp"></span></div><div class="rt"><div class="rf"></div></div>';
    box.appendChild(el); rowEls.set(p.id,el);
   }
-  el.style.transform=`translateY(${i*ROW}px)`; el.classList.toggle('me',p.id===me.id);
+  el.style.transform=`translateY(${i*ROW+(pinned&&p===pinned?12:0)}px)`; el.classList.toggle('me',p.id===me.id);
   const rank=1+ps.filter(o=>o.score>p.score).length;
   el.querySelector('.rk').textContent=rank; el.querySelector('.rn').textContent=p.name; el.querySelector('.rs').textContent=p.score;
   const f=el.querySelector('.rf'); f.style.width=Math.max(2,p.score/max*100)+'%'; f.style.background=COLORS[p.ci];
@@ -1009,12 +1166,13 @@ function renderRace(){
   el.querySelector('.rc').innerHTML=c;
  });
  for(const [id,el] of rowEls) if(!seen.has(id)){el.remove();rowEls.delete(id);}
+ $('#raceMore').textContent=ps.length>vis.length?`ほか${ps.length-vis.length}人（全${ps.length}人）`:ps.length>1?`全${ps.length}人`:'';
 }
 function renderHostbar(){
  const hb=$('#hostbar');
  if(!isHost||!S||S.phase==='lobby'||S.phase==='final'){hb.hidden=true;return;}
  hb.hidden=false;
- const lab={intro:'すぐ始める',q:'ここで締め切る',reveal:'順位を見る',rank:S.qi+1>=S.total?'結果発表へ':'次の問題へ'}[S.phase];
+ const lab={intro:'すぐ始める',q:'ここで締め切る',answer:'解答を打ち切る',reveal:'順位を見る',rank:S.qi+1>=S.total?'結果発表へ':'次の問題へ'}[S.phase];
  const key=S.phase+S.qi+G.opts.auto; if(hb.dataset.k===key)return; hb.dataset.k=key;
  hb.innerHTML=`<label class="ck"><input type="checkbox" id="hb-auto" ${G.opts.auto?'checked':''}>結果と順位を自動で進める</label>${lab?`<button class="btn" id="hb-next" type="button">${lab}</button>`:'<span class="small" style="color:#fff">解答を待っています</span>'}`;
 }
@@ -1037,7 +1195,7 @@ setInterval(()=>{
 let finalShown=0,finalTimer=0;
 function startFinal(){
  clearTimeout(finalTimer); finalShown=0;
- const n=S.players.filter(p=>!p.sp).length; if(!n)return;
+ const n=Math.min(6,S.players.filter(p=>!p.sp).length); if(!n)return;
  const step=()=>{
   finalShown++; renderFinal();
   if(finalShown>=n){SFX.fanfare();burst(240,{x:.5,y:.3,pow:1.3});setTimeout(()=>burst(160,{x:.2,y:.4}),400);setTimeout(()=>burst(160,{x:.8,y:.4}),700);return;}
@@ -1048,19 +1206,29 @@ function startFinal(){
  finalTimer=setTimeout(step,900);
 }
 function renderFinal(){
- const s=S,ps=s.players.filter(p=>!p.sp).sort((a,b)=>b.score-a.score),n=ps.length;
+ const s=S,ps=s.players.filter(p=>!p.sp).sort((a,b)=>b.score-a.score),n=Math.min(6,ps.length);
+ const maxC=Math.max(0,...ps.map(p=>p.c)),maxB=Math.max(0,...ps.map(p=>p.b));
  $('#finalList').innerHTML=ps.map((p,i)=>{
   const rank=1+ps.filter(o=>o.score>p.score).length;
-  const revealed=i>=n-finalShown;
-  return `<div class="fr r${Math.min(rank,4)}${revealed?' in':''}"><span class="rk2">${rank}</span><span class="nm">${esc(p.name)}${p.id===me.id?'（あなた）':''}<small>最高連続正解 ${p.b}</small></span><span class="sc">${p.score}</span></div>`;
+  const revealed=i<n?i>=n-finalShown:finalShown>=1;
+  const aw=(maxC>0&&p.c===maxC?'<span class="aw">正解王</span>':'')+(maxB>1&&p.b===maxB?'<span class="aw">連続王</span>':'');
+  return `<div class="fr r${Math.min(rank,4)}${i>=n?' sm':''}${revealed?' in':''}"><span class="rk2">${rank}</span><span class="nm">${esc(p.name)}${p.id===me.id?'（あなた）':''}<small>正解 ${p.c}問 ・ 最高連続 ${p.b}${aw}</small></span><span class="sc">${p.score}</span></div>`;
  }).join('');
  const done=finalShown>=n;
- $('#finalBtns').innerHTML=done?`${isHost?'<button class="btn big" id="again" type="button">もう一度遊ぶ</button>':''}<button class="btn sub" id="home" type="button">トップに戻る</button>`:'';
+ $('#finalBtns').innerHTML=done?`${isHost?'<button class="btn big" id="again" type="button">もう一度遊ぶ</button><button class="btn sub" id="csv" type="button">結果をCSVで保存</button>':''}<button class="btn sub" id="home" type="button">トップに戻る</button>`:'';
 }
 $('#finalBtns').addEventListener('click',e=>{
  if(e.target.id==='again')resetToLobby();
+ if(e.target.id==='csv')saveCsv();
  if(e.target.id==='home')location.href=location.pathname;
 });
+function saveCsv(){
+ const ps=S.players.filter(p=>!p.sp).sort((a,b)=>b.score-a.score);
+ const safe=v=>{v=String(v);if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';};
+ const rows=[['順位','名前','得点','正解数','最高連続']].concat(ps.map(p=>[1+ps.filter(o=>o.score>p.score).length,p.name,p.score,p.c,p.b]));
+ const csv='\uFEFF'+rows.map(r=>r.map(safe).join(',')).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='quiz-results-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
 $('#lostBtn').onclick=()=>{location.href=location.pathname;};
 
 /* ===================== トップ画面 ===================== */
@@ -1109,7 +1277,9 @@ async function handleFile(f){
  if(!ready){isHost=false;reset();loadErr('通信サーバーに接続できませんでした。ネットワーク接続を確認して、もう一度お試しください。');return;}
  G=newGame({title:res.title,questions:res.questions,warnings:res.warnings,heads:res.heads||null});
  G.players.set(me.id,mkPlayer(me.id,name));
- pushState();
+ stopScan();
+ pushState(true);
+ startBeacon();
  history.replaceState(null,'',location.pathname);
 }
 const makeCode=()=>{const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789';return Array.from({length:5},()=>a[Math.floor(Math.random()*a.length)]).join('');};
@@ -1117,10 +1287,10 @@ $('#join').onclick=async()=>{
  ac(); const err=$('#joinerr'); err.hidden=true;
  const name=getNick(),code=$('#code').value.trim().toUpperCase();
  const bad=t=>{err.textContent=t;err.hidden=false;};
- if(!name)return bad('ニックネームを入力してください。');
+ if(!name){$('#nick').focus();return bad('ニックネームを入力してください。');}
  if(code.length<4)return bad('部屋コードを入力してください。');
- me.name=name; roomCode=code; $('#join').disabled=true; $('#join').textContent='接続中…';
- const restore=()=>{$('#join').disabled=false;$('#join').textContent='入室する';};
+ me.name=name; roomCode=code; $('#join').disabled=true; $('#join').textContent='接続中…'; stopScan();
+ const restore=()=>{$('#join').disabled=false;$('#join').textContent='入室する';startScan();};
  try{await openRoom(code,false);}catch(e){
   restore();closeNet();
   const m=e&&e.message;
@@ -1128,16 +1298,25 @@ $('#join').onclick=async()=>{
  }
  joinTimer=setTimeout(()=>{dbg('司会から状態が届きません');closeNet();restore();bad('司会から応答がありません。もう一度入室してください。');},12000);
 };
+$('#roomList').addEventListener('click',e=>{const b=e.target.closest('[data-code]');if(!b)return;$('#code').value=b.dataset.code;$('#join').click();});
 $('#code').addEventListener('keydown',e=>{if(e.key==='Enter')$('#join').click();});
 $('#copy').onclick=async()=>{const b=$('#copy');try{await navigator.clipboard.writeText(joinUrl(roomCode));b.textContent='コピーしました';}catch{b.textContent=joinUrl(roomCode);}setTimeout(()=>b.textContent='リンクをコピー',2000);};
 /* ロビー設定 */
 $('#o-dir').onchange=e=>{G.opts.dir=e.target.value;};
 $('#o-mode').onchange=e=>{G.opts.mode=e.target.value;};
 $('#o-choice').onchange=e=>{G.opts.autochoice=e.target.checked;};
+$('#o-public').onchange=e=>{G.opts.public=e.target.checked;if(e.target.checked)startBeacon();else stopBeacon();};
 $('#o-auto').onchange=e=>{G.opts.auto=e.target.checked;};
 $('#o-manual').onchange=e=>{G.opts.manual=e.target.checked;};
 $('#o-shuffle').onchange=e=>{G.opts.shuffle=e.target.checked;};
 $('#o-spec').onchange=e=>{const p=G.players.get(me.id);if(p){p.spectator=e.target.checked;pushState();}};
+$('#leave').onclick=()=>{location.href=location.pathname;};
+$('#players').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b||!isHost)return;kick(b.dataset.k);});
+function kick(id){
+ const c=conns.get(id); if(c){try{c.send({t:'kick'});}catch{} setTimeout(()=>{try{c.close();}catch{}},250);}
+ conns.delete(id); G.players.delete(id); pushState();
+}
+startScan();
 $('#start').onclick=()=>{ac();startGame();};
 </script>
 </body>
