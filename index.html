@@ -332,7 +332,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const LETTERS='ABCDEF';
 const COLORS=['#FF5C7A','#FFB020','#22C58B','#8B5CF6','#3B82F6','#FF5CA8','#7BC820','#FF7A2F','#14B8D4','#A0714F'];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
-const LIBS=['https://esm.sh/trystero@0.21.5/torrent','https://esm.sh/trystero/torrent'];
+const PEER_LIBS=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
+const ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},
+ {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}];
 
 /* ===================== カセット解析 ===================== */
 // <parser>
@@ -537,26 +539,60 @@ function shake(){if(reduce)return;document.body.classList.remove('shake');void d
 function bannerMsg(t){const b=document.createElement('div');b.className='banner';b.textContent=t;document.body.appendChild(b);setTimeout(()=>b.remove(),1700);}
 
 /* ===================== 通信・共通状態 ===================== */
-let me={id:'',name:''},isHost=false,room=null,sendMsg=null,hostPeer=null,G=null,S=null,roomCode='',joinTimer=0;
+let me={id:'',name:''},isHost=false,peer=null,conns=new Map(),hostConn=null,sendMsg=null,hostPeer=null,G=null,S=null,roomCode='',joinTimer=0;
 let picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
 const TYPE_MS=70,ROW=58;
 
-async function openRoom(code){
- let mod=null;
- for(const u of LIBS){try{mod=await import(u);if(mod&&mod.joinRoom)break;}catch(e){mod=null;}}
- if(!mod) throw new Error('lib');
- me.id=mod.selfId;
- room=mod.joinRoom({appId:'buzz-studio-v1'},'bz-'+code);
- const [send,on]=room.makeAction('m');
- sendMsg=(d,to)=>{try{return send(d,to);}catch(e){}};
- on((d,peer)=>onMsg(d,peer));
- room.onPeerJoin(id=>{ if(!isHost) sendMsg({t:'hello',name:me.name},id); });
- room.onPeerLeave(id=>onLeave(id));
+async function loadPeerJS(){
+ if(window.Peer)return;
+ for(const u of PEER_LIBS){
+  try{await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=u;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}catch{}
+  if(window.Peer)return;
+ }
+ throw new Error('lib');
 }
-function onMsg(d,peer){
+function closeNet(){try{if(peer)peer.destroy();}catch{} peer=null;hostConn=null;conns=new Map();sendMsg=null;hostPeer=null;}
+async function openRoom(code,asHost){
+ await loadPeerJS();
+ const cfg={config:{iceServers:ICE}};
+ return new Promise((res,rej)=>{
+  let done=false; const fail=e=>{if(!done){done=true;clearTimeout(to);rej(e);}}; const ok=()=>{if(!done){done=true;clearTimeout(to);res();}};
+  const to=setTimeout(()=>fail(new Error('timeout')),14000);
+  if(asHost){
+   peer=new Peer('bzs-'+code,cfg);
+   peer.on('open',id=>{
+    me.id=id;
+    sendMsg=(d,t)=>{ if(t){const c=conns.get(t);if(c&&c.open)c.send(d);} else conns.forEach(c=>{if(c.open)c.send(d);}); };
+    ok();
+   });
+   peer.on('connection',c=>{
+    c.on('open',()=>conns.set(c.peer,c));
+    c.on('data',d=>{conns.set(c.peer,c);onMsg(d,c.peer);});
+    c.on('close',()=>{if(conns.get(c.peer)===c){conns.delete(c.peer);onLeave(c.peer);}});
+    c.on('error',()=>{});
+   });
+   peer.on('error',e=>fail(e));
+   peer.on('disconnected',()=>{try{peer.reconnect();}catch{}});
+  } else {
+   peer=new Peer(undefined,cfg);
+   peer.on('open',id=>{
+    me.id=id;
+    const c=peer.connect('bzs-'+code,{reliable:true,serialization:'json'});
+    hostConn=c; hostPeer='host';
+    c.on('open',()=>{sendMsg=d=>{if(c.open)c.send(d);};c.send({t:'hello',name:me.name});ok();});
+    c.on('data',d=>onMsg(d,'host'));
+    c.on('close',()=>{$('#lost').hidden=false;});
+    c.on('error',()=>{});
+   });
+   peer.on('error',e=>fail(e&&e.type==='peer-unavailable'?new Error('nf'):e));
+   peer.on('disconnected',()=>{try{peer.reconnect();}catch{}});
+  }
+ });
+}
+function onMsg(d,from){
  if(!d||typeof d!=='object')return;
- if(isHost){hostHandle(d,peer);return;}
- if(d.t==='S'){hostPeer=peer;clearTimeout(joinTimer);applyState(d.s);}
+ if(isHost){hostHandle(d,from);return;}
+ if(d.t==='S'){clearTimeout(joinTimer);applyState(d.s);}
 }
 function onLeave(id){
  if(isHost){
@@ -568,7 +604,7 @@ function onLeave(id){
   pushState();
  } else if(id===hostPeer){ $('#lost').hidden=false; }
 }
-function toHost(msg){ if(isHost)hostHandle(msg,me.id); else if(hostPeer)sendMsg(msg,hostPeer); }
+function toHost(msg){ if(isHost)hostHandle(msg,me.id); else if(sendMsg)sendMsg(msg); }
 function pushState(){ const s=snap(); applyState(s); if(sendMsg) sendMsg({t:'S',s}); }
 
 /* ===================== ホスト側ゲーム進行 ===================== */
@@ -1039,8 +1075,13 @@ async function handleFile(f){
  }
  res.warnings=res.warnings||[];
  const name=getNick()||'司会';
- me.name=name; isHost=true; roomCode=makeCode();
- try{await openRoom(roomCode);}catch(e){isHost=false;reset();loadErr('通信機能を読み込めませんでした。ネットワーク接続を確認して、もう一度お試しください。');return;}
+ me.name=name; isHost=true;
+ let ready=false;
+ for(let i=0;i<4&&!ready;i++){
+  roomCode=makeCode();
+  try{await openRoom(roomCode,true);ready=true;}catch(e){closeNet();if(!(e&&e.type==='unavailable-id'))break;}
+ }
+ if(!ready){isHost=false;reset();loadErr('通信サーバーに接続できませんでした。ネットワーク接続を確認して、もう一度お試しください。');return;}
  G=newGame({title:res.title,questions:res.questions,warnings:res.warnings,heads:res.heads||null});
  G.players.set(me.id,mkPlayer(me.id,name));
  pushState();
@@ -1055,8 +1096,12 @@ $('#join').onclick=async()=>{
  if(code.length<4)return bad('部屋コードを入力してください。');
  me.name=name; roomCode=code; $('#join').disabled=true; $('#join').textContent='接続中…';
  const restore=()=>{$('#join').disabled=false;$('#join').textContent='入室する';};
- try{await openRoom(code);}catch(e){restore();return bad('通信機能を読み込めませんでした。ネットワーク接続を確認してください。');}
- joinTimer=setTimeout(()=>{try{room.leave();}catch{} room=null;restore();bad('部屋が見つかりません。コードと、司会が起動中かを確認してください。');},15000);
+ try{await openRoom(code,false);}catch(e){
+  restore();closeNet();
+  const m=e&&e.message;
+  return bad(m==='nf'?'部屋が見つかりません。コードを確認して、司会が画面を開いたままか確かめてください。':m==='timeout'?'司会に接続できませんでした。ネットワークの制限（学校・会社のWi-Fiなど）が原因の場合は、スマホの回線でお試しください。':'通信サーバーに接続できませんでした。ネットワークを確認して、もう一度お試しください。');
+ }
+ joinTimer=setTimeout(()=>{closeNet();restore();bad('司会から応答がありません。もう一度入室してください。');},12000);
 };
 $('#code').addEventListener('keydown',e=>{if(e.key==='Enter')$('#join').click();});
 $('#copy').onclick=async()=>{const b=$('#copy');try{await navigator.clipboard.writeText(joinUrl(roomCode));b.textContent='コピーしました';}catch{b.textContent=joinUrl(roomCode);}setTimeout(()=>b.textContent='リンクをコピー',2000);};
