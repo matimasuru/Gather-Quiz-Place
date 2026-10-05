@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブザースタジオ v3.6</title>
+<title>ブザースタジオ v3.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -260,7 +260,7 @@ body.shake .wrap{animation:sh .45s}
 <div id="stamp" class="stamp" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="o" cx="100" cy="100" r="70"/><path class="x" d="M42 42L158 158M158 42L42 158"/></svg><div id="stampCap" class="cap"></div></div>
 
 <header class="topbar"><div class="top">
- <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.6</button></div>
+ <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.7</button></div>
  <div class="top-r">
   <span id="roomchip" class="chip" hidden></span>
   <button id="mute" class="icon" aria-label="効果音のオンオフ"><svg id="muteIco" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
@@ -584,8 +584,10 @@ $('#vbadge').onclick=()=>{$('#diagPanel').hidden=!$('#diagPanel').hidden;};
 $('#diagCopy').onclick=async()=>{try{await navigator.clipboard.writeText(DLOG.join('\n'));$('#diagCopy').textContent='コピーしました';}catch{$('#diagCopy').textContent='長押しで選択してください';}setTimeout(()=>$('#diagCopy').textContent='コピー',2000);};
 const DLOG=[];
 function dbg(m){DLOG.push(new Date().toLocaleTimeString()+'  '+m);const el=$('#diag');if(el){el.textContent=DLOG.join('\n');el.scrollTop=1e9;}try{console.log('[bz]',m);}catch{}}
-dbg('ページ読み込み完了 v3.6');
-async function loadPeerJS(){
+dbg('ページ読み込み完了 v3.7');
+let peerLibP=null;
+function loadPeerJS(){if(window.Peer)return Promise.resolve();return peerLibP||(peerLibP=loadPeerJS0().catch(e=>{peerLibP=null;throw e;}));}
+async function loadPeerJS0(){
  if(window.Peer)return;
  for(const u of PEER_LIBS){
   dbg('PeerJS読込: '+u);
@@ -630,7 +632,7 @@ function stopBeacon(){try{if(beacon)beacon.destroy();}catch{} beacon=null;}
 
 let scan={peer:null,timer:0,rooms:new Map(),misses:new Map(),on:false};
 async function startScan(){
- if(scan.on||isHost)return; scan.on=true; renderRooms();
+ if(scan.on||isHost||admin)return; scan.on=true; renderRooms();
  try{await loadPeerJS();}catch{scan.on=false;$('#scanState').textContent='探索を使えません';return;}
  if(!scan.on)return;
  const sp=new Peer(undefined,{config:{iceServers:ICE}}); scan.peer=sp;
@@ -651,14 +653,18 @@ function scanTick(){
  const sp=scan.peer; if(!sp||sp.destroyed||document.hidden)return;
  for(let i=1;i<=SLOTS;i++){
   const r=scan.rooms.get(i); if(r&&Date.now()-r.seen<20000)continue;
-  let c; try{c=sp.connect(slotId(i),{serialization:'json',reliable:true});}catch{continue;}
-  let got=false;
-  const kill=setTimeout(()=>{if(!got){try{c.close();}catch{}}},7000);
-  c.on('open',()=>{try{c.send({t:'probe'});}catch{}});
-  c.on('data',d=>{if(d&&d.t==='info'&&d.i){got=true;clearTimeout(kill);scan.rooms.set(i,{...d.i,slot:i,seen:Date.now()});scan.misses.set(i,0);renderRooms();try{c.close();}catch{}}});
-  c.on('error',()=>{});
+  setTimeout(()=>probeSlot(sp,i),i*150);
  }
  renderRooms();
+}
+function probeSlot(sp,i){
+ if(!scan.on||scan.peer!==sp||sp.destroyed)return;
+ let c; try{c=sp.connect(slotId(i),{serialization:'json',reliable:true});}catch{return;}
+ let got=false;
+ const kill=setTimeout(()=>{if(!got){try{c.close();}catch{}}},7000);
+ c.on('open',()=>{try{c.send({t:'probe'});}catch{}});
+ c.on('data',d=>{if(d&&d.t==='info'&&d.i){got=true;clearTimeout(kill);scan.rooms.set(i,{...d.i,slot:i,seen:Date.now()});scan.misses.set(i,0);renderRooms();try{c.close();}catch{}}});
+ c.on('error',()=>{});
 }
 function missSlot(i){
  const n=(scan.misses.get(i)||0)+1; scan.misses.set(i,n);
@@ -683,7 +689,7 @@ async function openRoom(code,asHost){
  const cfg={config:{iceServers:ICE}};
  return new Promise((res,rej)=>{
   let done=false; const fail=e=>{if(!done){done=true;clearTimeout(to);rej(e);}}; const ok=()=>{if(!done){done=true;clearTimeout(to);res();}};
-  const to=setTimeout(()=>{dbg('タイムアウト');fail(new Error('timeout'));},asHost?14000:34000);
+  const to=setTimeout(()=>{dbg('タイムアウト');fail(new Error('timeout'));},asHost?20000:34000);
   dbg((asHost?'司会として':'参加者として')+'通信サーバーへ接続中 部屋='+code);
   if(asHost){
    peer=new Peer('bzs-'+code,cfg);
@@ -1238,7 +1244,7 @@ let admin=false; try{admin=sessionStorage.getItem('bz-admin')===ADMIN_HASH;}catc
 function applyAdmin(){$('#hostDoor').hidden=!admin;$('#doors').classList.toggle('single',!admin);$('#adminLink').hidden=admin;if(admin)$('#adminForm').hidden=true;}
 $('#adminLink').onclick=()=>{$('#adminForm').hidden=false;$('#adminPass').focus();};
 $('#adminForm').addEventListener('submit',async e=>{e.preventDefault();let h='';try{h=await sha($('#adminPass').value);}catch{}
- if(h===ADMIN_HASH){admin=true;try{sessionStorage.setItem('bz-admin',ADMIN_HASH);}catch{}$('#adminErr').hidden=true;applyAdmin();}
+ if(h===ADMIN_HASH){admin=true;stopScan();try{sessionStorage.setItem('bz-admin',ADMIN_HASH);}catch{}$('#adminErr').hidden=true;applyAdmin();}
  else{$('#adminErr').hidden=false;}});
 const gh=new URLSearchParams(location.search).get('genhash'); if(gh) sha(gh).then(h=>prompt('このハッシュを ADMIN_HASH に貼り付けてください',h));
 applyAdmin();
@@ -1256,7 +1262,7 @@ fileEl.addEventListener('change',()=>{const f=fileEl.files[0];if(f)handleFile(f)
 $('#tpl').onclick=saveTemplate;
 async function handleFile(f){
  if(!admin)return;
- ac(); $('#loaderr').hidden=true; slot.classList.add('busy'); $('#slotT').textContent='読み込み中…';
+ ac(); stopScan(); $('#loaderr').hidden=true; slot.classList.add('busy'); $('#slotT').textContent='読み込み中…';
  const reset=()=>{slot.classList.remove('busy');$('#slotT').innerHTML='カセットをドロップ<br><small>またはタップして選ぶ</small>';};
  let res;
  try{res=await readCassette(f);}catch(e){reset();loadErr(esc(e.message||'ファイルを開けませんでした。形式を確認してください。'));return;}
@@ -1269,12 +1275,25 @@ async function handleFile(f){
  res.warnings=res.warnings||[];
  const name=getNick()||'司会';
  me.name=name; isHost=true;
- let ready=false;
- for(let i=0;i<4&&!ready;i++){
+ let ready=false,lastErr=null;
+ for(let i=0;i<5&&!ready;i++){
   roomCode=makeCode();
-  try{await openRoom(roomCode,true);ready=true;}catch(e){closeNet();if(!(e&&e.type==='unavailable-id'))break;}
+  try{await openRoom(roomCode,true);ready=true;}
+  catch(e){
+   lastErr=e; closeNet();
+   dbg('部屋の作成に失敗('+(i+1)+'/5) '+((e&&(e.type||e.message))||'不明'));
+   if(e&&e.message==='lib')break;
+   if(!(e&&e.type==='unavailable-id'))await new Promise(r=>setTimeout(r,1200*(i+1)));
+  }
  }
- if(!ready){isHost=false;reset();loadErr('通信サーバーに接続できませんでした。ネットワーク接続を確認して、もう一度お試しください。');return;}
+ if(!ready){
+  isHost=false;reset();
+  const why=lastErr&&(lastErr.type||lastErr.message)||'不明';
+  const tail=DLOG.slice(-6).map(esc).join('<br>');
+  loadErr(`通信サーバーに接続できませんでした（${esc(why)}）。数秒おいて、もう一度お試しください。<details style="margin-top:8px"><summary>くわしい状況</summary><div style="font-family:monospace;font-size:11px;margin-top:6px">${tail}</div></details>`);
+  startScan();
+  return;
+ }
  G=newGame({title:res.title,questions:res.questions,warnings:res.warnings,heads:res.heads||null});
  G.players.set(me.id,mkPlayer(me.id,name));
  stopScan();
