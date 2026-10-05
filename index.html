@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブザースタジオ</title>
+<title>ブザースタジオ v3.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -220,6 +220,11 @@ body.shake .wrap{animation:sh .45s}
 .modal .btn{margin-top:16px}
 
 
+.vtag{font-size:11px;font-weight:800;background:#fff;color:var(--pri);border-radius:999px;padding:0 8px;margin-left:2px}
+.diag{max-width:560px;margin:14px auto 0;font-size:12px;color:var(--muted)}
+.diag summary{cursor:pointer;text-align:center}
+.diag pre{white-space:pre-wrap;word-break:break-all;background:#fff;border-radius:12px;padding:10px 12px;margin-top:8px;max-height:220px;overflow:auto;color:var(--ink);font-family:ui-monospace,Menlo,monospace}
+.ver{text-align:center;margin-top:28px;font-size:12px;color:var(--muted);font-weight:500}
 @media (max-width:520px){.choices{grid-template-columns:1fr}.tile{width:44px;height:56px;font-size:28px}.wrap{padding:6px 12px 60px}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
@@ -231,7 +236,7 @@ body.shake .wrap{animation:sh .45s}
 <div id="stamp" class="stamp" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="o" cx="100" cy="100" r="70"/><path class="x" d="M42 42L158 158M158 42L42 158"/></svg><div id="stampCap" class="cap"></div></div>
 
 <header class="top">
- <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span></div>
+ <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><span class="vtag">v3.2</span></div>
  <div class="top-r">
   <span id="roomchip" class="chip" hidden></span>
   <button id="mute" class="icon" aria-label="効果音のオンオフ"><svg id="muteIco" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
@@ -321,6 +326,8 @@ body.shake .wrap{animation:sh .45s}
   <div id="finalList" class="flist"></div>
   <div id="finalBtns" class="fbtns"></div>
  </section>
+ <details class="diag"><summary>通信の状態を表示（うまくいかないとき）</summary><pre id="diag">まだ何も実行していません。</pre></details>
+ <p class="ver">バージョン 3.2（PeerJS通信）</p>
 </main>
 
 <div id="lost" class="modal" hidden><div class="card"><h2>接続が切れました</h2><p>司会との接続が切れました。トップに戻って入り直してください。</p><button class="btn" id="lostBtn" type="button">トップに戻る</button></div></div>
@@ -543,11 +550,15 @@ let me={id:'',name:''},isHost=false,peer=null,conns=new Map(),hostConn=null,send
 let picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
 const TYPE_MS=70,ROW=58;
 
+const DLOG=[];
+function dbg(m){DLOG.push(new Date().toLocaleTimeString()+'  '+m);const el=$('#diag');if(el){el.textContent=DLOG.join('\n');el.scrollTop=1e9;}try{console.log('[bz]',m);}catch{}}
+dbg('ページ読み込み完了 v3.2');
 async function loadPeerJS(){
  if(window.Peer)return;
  for(const u of PEER_LIBS){
-  try{await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=u;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}catch{}
-  if(window.Peer)return;
+  dbg('PeerJS読込: '+u);
+  try{await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=u;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}catch{dbg('  → 読み込み失敗');}
+  if(window.Peer){dbg('  → 読み込み成功');return;}
  }
  throw new Error('lib');
 }
@@ -557,34 +568,38 @@ async function openRoom(code,asHost){
  const cfg={config:{iceServers:ICE}};
  return new Promise((res,rej)=>{
   let done=false; const fail=e=>{if(!done){done=true;clearTimeout(to);rej(e);}}; const ok=()=>{if(!done){done=true;clearTimeout(to);res();}};
-  const to=setTimeout(()=>fail(new Error('timeout')),14000);
+  const to=setTimeout(()=>{dbg('タイムアウト(14秒)');fail(new Error('timeout'));},14000);
+  dbg((asHost?'司会として':'参加者として')+'通信サーバーへ接続中 部屋='+code);
   if(asHost){
    peer=new Peer('bzs-'+code,cfg);
    peer.on('open',id=>{
+    dbg('通信サーバー接続OK id='+id);
     me.id=id;
     sendMsg=(d,t)=>{ if(t){const c=conns.get(t);if(c&&c.open)c.send(d);} else conns.forEach(c=>{if(c.open)c.send(d);}); };
     ok();
    });
    peer.on('connection',c=>{
-    c.on('open',()=>conns.set(c.peer,c));
+    dbg('参加者が接続してきました '+c.peer);
+    c.on('open',()=>{dbg('  → 経路確立 '+c.peer);conns.set(c.peer,c);});
     c.on('data',d=>{conns.set(c.peer,c);onMsg(d,c.peer);});
     c.on('close',()=>{if(conns.get(c.peer)===c){conns.delete(c.peer);onLeave(c.peer);}});
     c.on('error',()=>{});
    });
-   peer.on('error',e=>fail(e));
+   peer.on('error',e=>{dbg('通信エラー type='+(e&&e.type)+' '+(e&&e.message||''));fail(e);});
    peer.on('disconnected',()=>{try{peer.reconnect();}catch{}});
   } else {
    peer=new Peer(undefined,cfg);
    peer.on('open',id=>{
+    dbg('通信サーバー接続OK id='+id+' → 司会(bzs-'+code+')へ接続');
     me.id=id;
     const c=peer.connect('bzs-'+code,{reliable:true,serialization:'json'});
     hostConn=c; hostPeer='host';
-    c.on('open',()=>{sendMsg=d=>{if(c.open)c.send(d);};c.send({t:'hello',name:me.name});ok();});
+    c.on('open',()=>{dbg('司会との経路確立 → 入室を送信');sendMsg=d=>{if(c.open)c.send(d);};c.send({t:'hello',name:me.name});ok();});
     c.on('data',d=>onMsg(d,'host'));
     c.on('close',()=>{$('#lost').hidden=false;});
     c.on('error',()=>{});
    });
-   peer.on('error',e=>fail(e&&e.type==='peer-unavailable'?new Error('nf'):e));
+   peer.on('error',e=>{dbg('通信エラー type='+(e&&e.type)+' '+(e&&e.message||''));fail(e&&e.type==='peer-unavailable'?new Error('nf'):e);});
    peer.on('disconnected',()=>{try{peer.reconnect();}catch{}});
   }
  });
@@ -592,7 +607,7 @@ async function openRoom(code,asHost){
 function onMsg(d,from){
  if(!d||typeof d!=='object')return;
  if(isHost){hostHandle(d,from);return;}
- if(d.t==='S'){clearTimeout(joinTimer);applyState(d.s);}
+ if(d.t==='S'){if(joinTimer)dbg('司会から状態を受信');clearTimeout(joinTimer);joinTimer=0;applyState(d.s);}
 }
 function onLeave(id){
  if(isHost){
