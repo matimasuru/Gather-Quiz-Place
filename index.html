@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ブザースタジオ v3.7</title>
+<title>ブザースタジオ v4.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -219,6 +219,29 @@ body.shake .wrap{animation:sh .45s}
 .fr.sm{padding:8px 14px;grid-template-columns:40px 1fr auto;box-shadow:0 4px 12px rgba(79,107,255,.1)}
 .fr.sm .rk2{font-size:18px}.fr.sm .nm{font-size:15px}.fr.sm .sc{font-size:18px}
 .jall{margin-top:10px}
+.qextra:empty{display:none}
+.qextra{padding:0 20px 22px;text-align:center}
+.qimg{max-width:100%;max-height:280px;border-radius:16px;display:block;margin:0 auto 12px;object-fit:contain;background:var(--soft)}
+.ana{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.ana span{min-width:46px;height:56px;padding:0 8px;border-radius:14px;background:linear-gradient(180deg,#6A83FF,var(--pri));color:#fff;display:grid;place-items:center;font-weight:900;font-size:28px;box-shadow:0 5px 0 var(--pri-d)}
+.hints{list-style:none;padding:0;margin:0;display:grid;gap:8px;text-align:left}
+.hints li{background:var(--soft);border-radius:14px;padding:10px 14px;font-weight:800;animation:slam .35s ease-out}
+.hints li::before{content:'ヒント ' counter(h) '　';counter-increment:h;color:var(--pri);font-size:12px;font-weight:900}
+.hints{counter-reset:h}
+.hints li.next{background:transparent;color:var(--muted);font-weight:500;font-size:12px;animation:none}
+.hints li.next::before{content:''}
+.choices.tfc{grid-template-columns:1fr 1fr}
+.ch.tf{justify-content:center;padding:26px 10px}
+.ch.tf .tfs{font-size:64px;line-height:1;font-weight:900}
+.orderlist{display:grid;gap:10px}
+.oi{display:flex;align-items:center;gap:12px;text-align:left;border:0;border-radius:16px;background:var(--soft);color:var(--ink);padding:14px 16px;font:inherit;font-weight:900;font-size:17px;box-shadow:0 5px 0 #D5DCFF;cursor:pointer}
+.oi b{flex:none;width:34px;height:34px;border-radius:50%;background:#fff;color:var(--pri);display:grid;place-items:center;box-shadow:inset 0 0 0 3px var(--line)}
+.oi.on{background:linear-gradient(135deg,#6A83FF,#8B5CF6);color:#fff;box-shadow:0 5px 0 var(--pri-d)}
+.oi.on b{background:rgba(255,255,255,.3);color:#fff;box-shadow:none}
+.oi[disabled]:not(.on){opacity:.55}
+.ordhint{text-align:center;margin-bottom:10px}
+.numform .inp{font-size:28px;text-align:center}
+.reslist li.part{background:#FFF6DC}.reslist li.part .v{color:#D68A00}
 .aw{display:inline-block;background:linear-gradient(135deg,var(--orange),var(--pink));color:#fff;border-radius:999px;padding:0 8px;margin-left:6px;font-size:11px;font-weight:800}
 .kick{border:0;background:#fff;color:var(--red);width:20px;height:20px;border-radius:50%;font:inherit;font-weight:900;line-height:1;cursor:pointer;padding:0}
 .fbtns{display:flex;gap:16px;justify-content:center;margin-top:30px;flex-wrap:wrap}
@@ -260,7 +283,7 @@ body.shake .wrap{animation:sh .45s}
 <div id="stamp" class="stamp" hidden><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="o" cx="100" cy="100" r="70"/><path class="x" d="M42 42L158 158M158 42L42 158"/></svg><div id="stampCap" class="cap"></div></div>
 
 <header class="topbar"><div class="top">
- <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v3.7</button></div>
+ <div class="brand"><span class="mark" aria-hidden="true"></span><span class="disp">ブザースタジオ</span><button id="vbadge" class="vtag" type="button" aria-label="バージョンと通信ログを表示">v4.0</button></div>
  <div class="top-r">
   <span id="roomchip" class="chip" hidden></span>
   <button id="mute" class="icon" aria-label="効果音のオンオフ"><svg id="muteIco" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="w" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
@@ -336,6 +359,7 @@ body.shake .wrap{animation:sh .45s}
      <div class="telop-head"><div id="qno" class="qno disp"></div><div id="tags" class="tags"></div><div id="tnum" class="tnum disp"></div></div>
      <div class="tbar"><i id="tfill"></i></div>
      <p id="qtext" class="qtext" aria-live="polite"></p>
+     <div id="qextra" class="qextra"></div>
     </div>
     <div id="status" class="status" aria-live="polite"></div>
     <div id="act" class="act"></div>
@@ -384,7 +408,14 @@ const AL={
  dbl:mkSet(['ダブル','ダブルチャンス','倍率','2倍','double','x2','×2']),
  mode:mkSet(['モード','形式','種類','タイプ','mode','type','出題形式']),
  time:mkSet(['制限時間','時間','秒','秒数','time','timelimit']),
- exp:mkSet(['解説','補足','説明','メモ','explanation','note','comment'])
+ exp:mkSet(['解説','補足','説明','メモ','explanation','note','comment']),
+ img:mkSet(['画像','画像url','画像リンク','イメージ','写真','image','img','imageurl','url'])
+};
+const splitMulti=raw=>{
+ let t=String(raw).split(/[,、，\/／|｜;；\n]+/).map(x=>x.trim()).filter(Boolean);
+ if(t.length===1&&/^[a-fA-F]{2,}$/.test(t[0]))t=[...t[0]];
+ else if(t.length===1&&/^[1-6]{2,}$/.test(t[0]))t=[...t[0]];
+ return t;
 };
 function chIdx(h){
  let m=h.match(/^(?:選択肢|選択|択|choices?|options?|opt|回答|解答|ans)([1-8a-h])$/);
@@ -406,16 +437,18 @@ function parseRows(rows){
   const qi=cells.findIndex(c=>AL.q.has(c));
   if(qi>=0&&cells.some((c,i)=>i!==qi&&c)){hr=r;break;}
  }
- const col={q:-1,a:-1,pts:-1,dbl:-1,mode:-1,time:-1,exp:-1,ch:[]};
+ const col={q:-1,a:-1,pts:-1,dbl:-1,mode:-1,time:-1,exp:-1,img:-1,ch:[],hints:[]};
  let seen=[];
  if(hr>=0){
   const raw=rows[hr]; seen=raw.map(x=>String(x==null?'':x).trim()).filter(Boolean);
   raw.map(N).forEach((h,i)=>{
    if(!h) return;
+   const hm=h.match(/^(?:ヒント|hint)([1-5])$/); if(hm){col.hints[Number(hm[1])-1]=i;return;}
    for(const k of Object.keys(AL)){ if(AL[k].has(h)){ if(col[k]<0) col[k]=i; return; } }
    const k=chIdx(h); if(k>=0) col.ch.push({i,k});
   });
   col.ch.sort((x,y)=>x.k-y.k||x.i-y.i);
+  col.hints=col.hints.filter(x=>x!==undefined);
  } else {
   const data=rows.filter(r=>r&&r.some(c=>String(c==null?'':c).trim()));
   const first=data[0]||[];
@@ -441,24 +474,52 @@ function parseRows(rows){
   const text=cell(col.q); if(!text) continue;
   const line=r+1;
   const m=N(cell(col.mode));
-  let mode=null,force=null;
+  let mode=null,force=null,tp=null;
+  if(/○×|〇×|○✕|まるばつ|マルバツ|正誤|^ox|^tf$|ox問/.test(m)) tp='tf';
+  else if(/数字|数当て|数あて|数値|ニアピン|近い|num/.test(m)) tp='num';
+  else if(/並べ替え|並び替え|並べかえ|順番|整列|ソート|order|sort/.test(m)) tp='order';
+  else if(/複数|マルチ|multi/.test(m)) tp='multi';
+  else if(/アナグラム|文字並べ|anagram/.test(m)) tp='anagram';
   if(/一問一答|全員|同時|一斉|all|simul/.test(m)) mode='all';
   else if(/早押し|buzz|早/.test(m)) mode='buzz';
-  if(/記述|入力|text/.test(m)) force='text';
-  else if(/選択|択|choice/.test(m)) force='choice';
-  const choices=col.ch.map(c=>cell(c.i)).filter(Boolean);
-  const kind=(force==='text'||choices.length<2)?'text':'choice';
-  if(force==='choice'&&choices.length<2){warnings.push(`${line}行目：選択式ですが、選択肢が2つ以上ありません`);continue;}
+  if(!tp){ if(/記述|入力|text/.test(m)) force='text'; else if(/選択|択|choice/.test(m)) force='choice'; }
+  const choicesAll=col.ch.map(c=>cell(c.i)).filter(Boolean);
   const ansRaw=cell(col.a);
-  const q={text,kind,mode,pts:100,dbl0:null,time:0,exp:cell(col.exp)};
-  if(kind==='choice'){
-   const k=resolveChoice(ansRaw,choices);
-   if(k<0){warnings.push(`${line}行目：正解「${ansRaw||'空欄'}」が選択肢と一致しません`);continue;}
-   q.choices=choices.slice(0,6); q.ans=k;
-   if(k>=q.choices.length){warnings.push(`${line}行目：選択肢は6つまでです`);continue;}
+  const q={text,kind:'text',mode,pts:100,dbl0:null,time:0,exp:cell(col.exp)};
+  const img=cell(col.img); if(/^https?:\/\//i.test(img)) q.img=img;
+  const hints=col.hints.map(i=>cell(i)).filter(Boolean); if(hints.length) q.hints=hints.slice(0,5);
+  if(tp==='tf'){
+   const n=N(ansRaw); let a=-1;
+   if(/^(○|〇|o|true|t|はい|正|正しい|まる|yes|y|1)$/.test(n)) a=0; else if(/^(×|✕|x|false|f|いいえ|誤|誤り|間違い|ばつ|no|n|0|2)$/.test(n)) a=1;
+   if(a<0){warnings.push(`${line}行目：○×問題の正解は「○」か「×」で書いてください`);continue;}
+   Object.assign(q,{kind:'choice',tf:true,choices:['○','×'],ans:a});
+  } else if(tp==='num'){
+   const v=parseFloat(String(ansRaw).normalize('NFKC').replace(/[,\s]/g,''));
+   if(!Number.isFinite(v)){warnings.push(`${line}行目：数字当ての正解が数字ではありません`);continue;}
+   Object.assign(q,{kind:'num',numAns:v,mode:'all'});
+  } else if(tp==='order'){
+   if(choicesAll.length<3){warnings.push(`${line}行目：並べ替えは、選択肢1から正しい順に3つ以上書いてください`);continue;}
+   q.kind='order'; q.choices=choicesAll.slice(0,8);
+  } else if(tp==='multi'){
+   const ch=choicesAll.slice(0,6);
+   if(ch.length<2){warnings.push(`${line}行目：複数選択は選択肢が2つ以上必要です`);continue;}
+   const set=[...new Set(splitMulti(ansRaw).map(t=>resolveChoice(t,ch)))];
+   if(!set.length||set.some(k=>k<0)){warnings.push(`${line}行目：複数選択の正解「${ansRaw||'空欄'}」が選択肢と一致しません（例：A,C）`);continue;}
+   Object.assign(q,{kind:'multi',choices:ch,ansSet:set.sort((x,y)=>x-y)});
   } else {
-   q.answers=ansRaw.split(/[\/／|｜;；\n]+/).map(s=>s.trim()).filter(Boolean);
-   if(!q.answers.length){warnings.push(`${line}行目：正解が空欄です`);continue;}
+   const kind=(force==='text'||choicesAll.length<2||(q.hints&&!force))?'text':'choice';
+   if(force==='choice'&&choicesAll.length<2){warnings.push(`${line}行目：選択式ですが、選択肢が2つ以上ありません`);continue;}
+   q.kind=kind;
+   if(kind==='choice'){
+    const k=resolveChoice(ansRaw,choicesAll);
+    if(k<0){warnings.push(`${line}行目：正解「${ansRaw||'空欄'}」が選択肢と一致しません`);continue;}
+    q.choices=choicesAll.slice(0,6); q.ans=k;
+    if(k>=q.choices.length){warnings.push(`${line}行目：選択肢は6つまでです`);continue;}
+   } else {
+    q.answers=splitAns(ansRaw);
+    if(!q.answers.length){warnings.push(`${line}行目：正解が空欄です`);continue;}
+    if(tp==='anagram'){ if([...q.answers[0]].length<2){warnings.push(`${line}行目：アナグラムの答えは2文字以上にしてください`);continue;} q.anagram=true; }
+   }
   }
   const p=Number(cell(col.pts)); if(Number.isFinite(p)&&p>0) q.pts=Math.round(p);
   const d=N(cell(col.dbl));
@@ -496,17 +557,21 @@ async function readCassette(file){
 }
 function saveTemplate(){
  if(!window.XLSX){alert('読み込みモジュールを取得できませんでした。');return;}
- const rows=[
-  ['問題','選択肢1','選択肢2','選択肢3','選択肢4','正解','配点','ダブル','モード','制限時間','解説'],
-  ['日本で一番高い山は？','富士山','北岳','奥穂高岳','槍ヶ岳','富士山',100,'','早押し','','標高3776m'],
-  ['光の三原色は、赤・緑とあと一つは？','','','','','青/ブルー',100,'','一問一答','',''],
-  ['1年で昼がもっとも短い日は？','夏至','冬至','春分','秋分','冬至',200,'TRUE','一問一答','15',''],
-  ['「吾輩は猫である」の作者は？','','','','','夏目漱石/漱石',100,'','早押し','',''],
-  ['太陽系で最も大きい惑星は？','水星','木星','土星','海王星','B',300,'','早押し','','番号やA〜Dでも指定できます'],
-  ['1メートルは何センチ？','','','','','100',300,'','一問一答','','']
- ];
+ const H=['問題','選択肢1','選択肢2','選択肢3','選択肢4','正解','配点','ダブル','形式','制限時間','解説','画像','ヒント1','ヒント2','ヒント3'];
+ const e='';
+ const rows=[H,
+  ['日本で一番高い山は？','富士山','北岳','奥穂高岳','槍ヶ岳','富士山',100,e,'早押し',e,'標高3776m',e,e,e,e],
+  ['光の三原色は、赤・緑とあと一つは？',e,e,e,e,'青/ブルー',100,e,'一問一答',e,e,e,e,e,e],
+  ['太陽は地球より大きい。',e,e,e,e,'○',100,e,'○×',e,'約109倍の直径',e,e,e,e],
+  ['東京タワーの高さは何メートル？（数字で答える）',e,e,e,e,333,200,e,'数字当て',e,'近い人ほど高得点',e,e,e,e],
+  ['小さい順に並べよう',e,'メダカ','猫','馬','ゾウ',e,200,e,'並べ替え',e,'選択肢1から正しい順に書く',e,e,e,e].slice(0,0).concat(['小さい順に並べよう','メダカ','猫','馬','ゾウ',e,200,e,'並べ替え',e,'選択肢1から正しい順に書きます',e,e,e,e]),
+  ['果物をすべて選んでください','りんご','にんじん','バナナ','たまねぎ','A,C',150,e,'複数選択',e,e,e,e,e,e],
+  ['文字を並べ替えて答えよう（果物）',e,e,e,e,'ぶどう',100,e,'アナグラム',e,e,e,e,e,e],
+  ['この人物は誰？',e,e,e,e,'夏目漱石',200,e,'早押し',e,e,'https://upload.wikimedia.org/wikipedia/commons/9/9e/Natsume_Soseki_photo.jpg',e,e,e],
+  ['ある日本の都市です。ヒントから当てよう',e,e,e,e,'京都',300,e,'早押し',e,'ヒントは7秒ごとに増え、点数が下がります',e,'千年以上の古都','金閣寺や清水寺がある','舞妓さんで有名']
+ ].filter(r=>r.length===H.length);
  const ws=XLSX.utils.aoa_to_sheet(rows);
- ws['!cols']=[{wch:34},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16},{wch:8},{wch:8},{wch:10},{wch:10},{wch:26}];
+ ws['!cols']=[{wch:34},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16},{wch:8},{wch:8},{wch:10},{wch:10},{wch:26},{wch:30},{wch:16},{wch:16},{wch:16}];
  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'クイズ');
  XLSX.writeFile(wb,'クイズカセット_ひな形.xlsx');
 }
@@ -517,9 +582,14 @@ function norm(s){
   .replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
   .replace(/[\s\u3000\u30fb\u3001,\u3002.\-\u30fc~!?"'\u300c\u300d\u300e\u300f()\[\]\u3010\u3011]/g,'');
 }
-const verdictOf=(q,v)=>q.kind==='choice'?v===q.ans:q.answers.some(a=>norm(a)===norm(v));
-const answerLabel=q=>q.kind==='choice'?`${LETTERS[q.ans]}. ${q.choices[q.ans]}`:q.answers[0];
-const showGiven=(q,v)=>q.kind==='choice'?`${LETTERS[v]}. ${q.choices[v]}`:String(v);
+const verdictOf=(q,v)=>{
+ if(q.kind==='choice')return v===q.ans;
+ if(q.kind==='multi'){const a=[...v].sort((x,y)=>x-y);return a.length===q.ansSet.length&&a.every((x,i)=>x===q.ansSet[i]);}
+ if(q.kind==='order')return v.every((d,i)=>G.perm[d]===i);
+ return q.answers.some(a=>norm(a)===norm(v));
+};
+const answerLabel=q=>q.kind==='choice'?(q.tf?q.choices[q.ans]:`${LETTERS[q.ans]}. ${q.choices[q.ans]}`):q.kind==='multi'?q.ansSet.map(i=>`${LETTERS[i]}. ${q.choices[i]}`).join(' ／ '):q.kind==='order'?q.choices.join(' → '):q.kind==='num'?String(q.numAns):q.answers[0];
+const showGiven=(q,v)=>q.kind==='choice'?(q.tf?q.choices[v]:`${LETTERS[v]}. ${q.choices[v]}`):q.kind==='multi'?[...v].sort((x,y)=>x-y).map(i=>LETTERS[i]).join('・'):q.kind==='order'?v.map(d=>q.choices[G.perm[d]]).join(' → '):String(v);
 
 /* ===================== サウンド・演出 ===================== */
 let AC=null,muted=false;
@@ -577,14 +647,14 @@ function bannerMsg(t){const b=document.createElement('div');b.className='banner'
 /* ===================== 通信・共通状態 ===================== */
 let myTok='';try{myTok=sessionStorage.getItem('bz-tok')||'';if(!myTok){myTok=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('bz-tok',myTok);}}catch{myTok=Math.random().toString(36).slice(2);}
 let me={id:'',name:''},isHost=false,peer=null,conns=new Map(),hostConn=null,sendMsg=null,hostPeer=null,G=null,S=null,roomCode='',joinTimer=0;
-let picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
+let multiSel=[],orderSel=[],picked=-1,deadline=0,dur=0,typeStart=0,frozen=0,lastChars=-1,lastTick=-1,lastEv=null,actKey='',introKey='',localSent=false;
 const TYPE_MS=70,ROW=58;
 
 $('#vbadge').onclick=()=>{$('#diagPanel').hidden=!$('#diagPanel').hidden;};
 $('#diagCopy').onclick=async()=>{try{await navigator.clipboard.writeText(DLOG.join('\n'));$('#diagCopy').textContent='コピーしました';}catch{$('#diagCopy').textContent='長押しで選択してください';}setTimeout(()=>$('#diagCopy').textContent='コピー',2000);};
 const DLOG=[];
 function dbg(m){DLOG.push(new Date().toLocaleTimeString()+'  '+m);const el=$('#diag');if(el){el.textContent=DLOG.join('\n');el.scrollTop=1e9;}try{console.log('[bz]',m);}catch{}}
-dbg('ページ読み込み完了 v3.7');
+dbg('ページ読み込み完了 v4.0');
 let peerLibP=null;
 function loadPeerJS(){if(window.Peer)return Promise.resolve();return peerLibP||(peerLibP=loadPeerJS0().catch(e=>{peerLibP=null;throw e;}));}
 async function loadPeerJS0(){
@@ -811,7 +881,11 @@ function snap(){
   s.meta={n:qs.length,buzz:qs.filter(x=>x.mode==='buzz').length,all:qs.filter(x=>x.mode==='all').length,none:qs.filter(x=>!x.mode).length,pair:qs.some(x=>x.pair),heads:g.c.heads||null,warn:g.c.warnings||[]};
  }
  if(q&&g.phase!=='lobby'&&g.phase!=='final'){
-  s.q={text:q.text,choices:q.kind==='choice'?q.choices:null,kind:q.kind,mode:q.mode,pts:q.pts,dbl:q.dbl,fin:q.fin};
+  const rv=g.phase==='reveal'||g.phase==='rank';
+  s.q={text:q.text,choices:(q.kind==='choice'||q.kind==='multi')?q.choices:null,items:q.kind==='order'?g.items:null,kind:q.kind,tf:!!q.tf,
+   ty:q.tf?'tf':q.kind==='num'?'num':q.kind==='order'?'order':q.kind==='multi'?'multi':q.anagram?'ana':q.hints?'hint':q.kind,
+   ana:q.ana||null,img:q.img||null,hints:q.hints?(rv?q.hints:q.hints.slice(0,g.hc)):null,hn:q.hints?q.hints.length:0,
+   mode:q.mode,pts:q.pts,dbl:q.dbl,fin:q.fin};
   s.buzzer=g.buzzer; s.locked=[...g.locked]; s.answered=[...g.answers.keys()];
   if(g.timed){s.left=Math.max(0,g.deadline-Date.now());s.dur=g.qDur;}
   if(g.phase==='judge'&&g.judge) s.judge={pid:g.judge.pid,text:g.judge.text,k:(g.judge.pids||[1]).length,rest:g.judgeQ.length-1,ans:q.kind==='text'?q.answers:[]};
@@ -825,6 +899,7 @@ function hostHandle(d,pid){
  else if(d.t==='buzz')onBuzz(pid);
  else if(d.t==='ans')onAnswer(pid,d.v);
 }
+const scramble=t=>{const a=[...t];let b=a;for(let i=0;i<30;i++){b=shuffle([...a]);if(b.join('')!==t)break;}return b.join('');};
 function pairText(Q,lr,h){
  if(h&&/意味/.test(h[1])){
   if(lr) return `「${Q}」の意味は？`;
@@ -839,7 +914,9 @@ function startGame(){
  const pool=qs.filter(q=>q.pair).map(q=>q.answers[0]);
  qs.forEach(q=>{
   q.fin=false; q.dbl=q.dbl0===true;
-  if(!q.mode) q.mode=g.opts.mode==='mix'?(Math.random()<.5?'buzz':'all'):g.opts.mode;
+  if(q.kind==='num')q.mode='all';
+  else if(!q.mode)q.mode=(q.kind==='order'||q.kind==='multi')?'all':(g.opts.mode==='mix'?(Math.random()<.5?'buzz':'all'):g.opts.mode);
+  if(q.anagram)q.ana=scramble(q.answers[0]);
   if(q.pair&&g.opts.autochoice&&pool.length>=4){
    const right=q.answers[0];
    const wrong=shuffle([...new Set(pool.filter(a=>norm(a)!==norm(right)))]).slice(0,3);
@@ -857,15 +934,26 @@ function startGame(){
 function nextQuestion(){
  const g=G; clearTimer(); g.qi++;
  if(g.qi>=g.order.length) return toFinal();
+ clearHints(); g.hc=0; g.perm=null; g.items=null;
+ const q0=g.order[g.qi];
+ if(q0.kind==='order'){let idx;do{idx=shuffle([...q0.choices.keys()]);}while(idx.every((v,i)=>v===i));g.perm=idx;g.items=idx.map(i=>q0.choices[i]);}
  g.phase='intro'; g.buzzer=null; g.locked=new Set(); g.answers=new Map(); g.reveal=null; g.judge=null; g.judgeQ=[]; g.verdict=new Map(); g.wrong=[]; g.timed=false;
  for(const p of members()) p.pr=rankOf(p.id);
  g.ev=ev('intro'); pushState(); later(DUR.intro,beginQ);
 }
-const defaultTime=q=>q.mode==='all'?(q.kind==='text'?25:15):20;
+const HINT_MS=7000;
+const defaultTime=q=>q.kind==='num'?20:q.kind==='order'?25:q.kind==='multi'?20:q.hints?30:q.anagram?25:q.mode==='all'?(q.kind==='text'?25:15):20;
+const hintF=(q,hc)=>q.hints&&q.hints.length>1?Math.max(.4,1-.2*((hc||1)-1)):1;
+function clearHints(){if(G&&G.hintTm){G.hintTm.forEach(clearTimeout);}if(G)G.hintTm=[];}
+function scheduleHints(q){
+ clearHints(); if(!q.hints||q.hints.length<2)return; const qi=G.qi;
+ for(let k=1;k<q.hints.length;k++)G.hintTm.push(setTimeout(()=>{if(G&&G.qi===qi&&['q','answer','judge'].includes(G.phase)){G.hc=Math.max(G.hc,k+1);pushState();}},k*HINT_MS));
+}
 function beginQ(){
  const g=G,q=cur(); clearTimer(); g.phase='q';
  const t=(q.time||defaultTime(q))*1000;
  g.qDur=t; g.qRemain=t; g.qStart=Date.now(); g.timed=true; g.deadline=Date.now()+t;
+ g.hc=q.hints?1:0; scheduleHints(q);
  pushState(); later(t,onQTimeout);
 }
 function onQTimeout(){ const q=cur(); if(G.phase!=='q')return; if(q.mode==='all')endAll(); else{G.ev=ev('timeup');toReveal({});} }
@@ -873,10 +961,13 @@ function onBuzz(pid){
  const g=G,q=cur(),p=g.players.get(pid);
  if(g.phase!=='q'||!q||q.mode!=='buzz'||!p||p.spectator||g.locked.has(pid))return;
  clearTimer(); g.qRemain=Math.max(0,g.deadline-Date.now()); g.buzzer=pid; g.phase='answer';
- const t=(q.kind==='text'?15:10)*1000; g.qDur=t; g.deadline=Date.now()+t; g.timed=true;
+ const t=(q.kind==='choice'?10:q.kind==='text'?15:20)*1000; g.qDur=t; g.deadline=Date.now()+t; g.timed=true;
  g.ev=ev('buzz',{pid}); pushState(); later(t,()=>wrongBuzz(pid,'timeout'));
 }
 function cleanAns(q,v){
+ if(q.kind==='multi'){if(!Array.isArray(v))return null;const a=[...new Set(v.map(Number))].filter(n=>Number.isInteger(n)&&n>=0&&n<q.choices.length);return a.length?a:null;}
+ if(q.kind==='order'){const n=q.choices.length;if(!Array.isArray(v)||v.length!==n)return null;const a=v.map(Number);if(new Set(a).size!==n||a.some(x=>!Number.isInteger(x)||x<0||x>=n))return null;return a;}
+ if(q.kind==='num'){const n=parseFloat(String(v==null?'':v).normalize('NFKC').replace(/[,\s]/g,''));return Number.isFinite(n)&&Math.abs(n)<1e12?n:null;}
  if(q.kind==='choice'){const n=Number(v);return Number.isInteger(n)&&n>=0&&n<q.choices.length?n:null;}
  const s=String(v==null?'':v).trim().slice(0,60); return s||null;
 }
@@ -889,7 +980,7 @@ function onAnswer(pid,v){
   wrongBuzz(pid,'wrong',val);
  } else if(g.phase==='q'&&q.mode==='all'&&!g.answers.has(pid)){
   const val=cleanAns(q,v); if(val===null)return;
-  g.answers.set(pid,{v:val,el:Date.now()-g.qStart});
+  g.answers.set(pid,{v:val,el:Date.now()-g.qStart,hc:g.hc});
   if(allAnswered())endAll(); else pushState();
  }
 }
@@ -907,14 +998,14 @@ function hostJudgeRest(){
  g.judgeQ=[]; g.judge=null;
  if(cur().mode==='buzz'){const pid=g.buzzer;wrongBuzz(pid,'wrong');} else scoreAll();
 }
-function calc(p,q,m,speed){
+function calc(p,q,m,speed,hf=1){
  const sb=1+Math.min(p.streak,5)*0.1, qm=q.fin?3:(q.dbl?2:1);
- const gain=Math.max(10,Math.round(q.pts*m*sb*qm*speed/10)*10);
- return {gain,m,sb:Math.round(sb*10)/10,qm,sp:Math.round(speed*100)/100};
+ const gain=Math.max(10,Math.round(q.pts*m*sb*qm*speed*hf/10)*10);
+ return {gain,m,sb:Math.round(sb*10)/10,qm,sp:Math.round(speed*100)/100,hf:Math.round(hf*100)/100};
 }
 function winBuzz(pid,val){
  const g=G,q=cur(),p=g.players.get(pid),mm=multMap();
- const r=calc(p,q,mm[pid],1); p.score+=r.gain; p.streak++; p.ok++; p.best=Math.max(p.best,p.streak);
+ const r=calc(p,q,mm[pid],1,hintF(q,g.hc)); p.score+=r.gain; p.streak++; p.ok++; p.best=Math.max(p.best,p.streak);
  r.ok=true; r.ans=showGiven(q,val);
  g.ev=ev('ok',{pid,gain:r.gain,streak:p.streak});
  toReveal({winner:pid,res:{[pid]:r}});
@@ -931,7 +1022,8 @@ function wrongBuzz(pid,why,val){
  } else { toReveal({}); }
 }
 function endAll(){
- const g=G,q=cur(); clearTimer(); g.timed=false; const pend=[],grp=new Map();
+ const g=G,q=cur(); clearTimer(); clearHints(); g.timed=false; const pend=[],grp=new Map();
+ if(q.kind==='num')return scoreNum();
  for(const p of members()){
   const a=g.answers.get(p.id); if(!a)continue;
   if(verdictOf(q,a.v))g.verdict.set(p.id,true);
@@ -942,20 +1034,39 @@ function endAll(){
  if(pend.length){g.phase='judge';g.judgeQ=pend;g.judge=pend[0];pushState();}
  else scoreAll();
 }
+function scoreNum(){
+ const g=G,q=cur(),mm=multMap(),res={}; let okN=0;
+ const ds=[...new Set(members().map(p=>g.answers.get(p.id)).filter(Boolean).map(a=>Math.abs(a.v-q.numAns)))].sort((a,b)=>a-b);
+ const frac=[1,.6,.3];
+ const fmt=n=>Number.isInteger(n)?String(n):String(Math.round(n*1000)/1000);
+ for(const p of members()){
+  const a=g.answers.get(p.id);
+  if(!a){p.streak=0;res[p.id]={ok:false,gain:0,ans:null};continue;}
+  const d=Math.abs(a.v-q.numAns),rk=ds.indexOf(d),f=frac[rk]||0;
+  const label=`${fmt(a.v)}（${d===0?'ぴったり！':'差 '+fmt(d)}）`;
+  if(f>0){
+   const r=calc(p,q,mm[p.id],f*(d===0?1.5:1)); r.ans=label; p.score+=r.gain;
+   if(rk===0){p.streak++;p.ok++;p.best=Math.max(p.best,p.streak);r.ok=true;r.streak=p.streak;okN++;}
+   else{p.streak=0;r.ok=false;}
+   res[p.id]=r;
+  } else {p.streak=0;res[p.id]={ok:false,gain:0,ans:label};}
+ }
+ g.ev=ev('reveal',{n:okN}); toReveal({res});
+}
 function scoreAll(){
  const g=G,q=cur(),mm=multMap(),res={}; let okN=0;
  for(const p of members()){
   const a=g.answers.get(p.id);
   if(a&&g.verdict.get(p.id)===true){
    const ratio=Math.max(0,1-a.el/g.qDur);
-   const r=calc(p,q,mm[p.id],1+0.3*ratio); r.ok=true; r.ans=showGiven(q,a.v);
+   const r=calc(p,q,mm[p.id],1+0.3*ratio,hintF(q,a.hc)); r.ok=true; r.ans=showGiven(q,a.v);
    p.score+=r.gain; p.streak++; p.ok++; p.best=Math.max(p.best,p.streak); r.streak=p.streak; res[p.id]=r; okN++;
   } else { p.streak=0; res[p.id]={ok:false,gain:0,ans:a?showGiven(q,a.v):null}; }
  }
  g.ev=ev('reveal',{n:okN}); toReveal({res});
 }
 function toReveal(extra){
- const g=G,q=cur(); clearTimer(); g.phase='reveal'; g.timed=false;
+ const g=G,q=cur(); clearTimer(); clearHints(); g.phase='reveal'; g.timed=false;
  const res=extra.res||{};
  for(const w of g.wrong){ if(!res[w.pid]) res[w.pid]={ok:false,gain:-w.pen,ans:w.ans}; }
  g.reveal={ans:answerLabel(q),alt:q.kind==='text'?q.answers.slice(1):[],exp:q.exp||'',res,winner:extra.winner||null};
@@ -966,11 +1077,11 @@ function toRank(){
  g.ev=ev('rank'); pushState(); if(g.opts.auto) later(DUR.rank,nextQuestion);
 }
 function toFinal(){
- const g=G; clearTimer(); g.phase='final'; g.timed=false; for(const p of g.players.values())p.shown=p.score;
+ const g=G; clearTimer(); clearHints(); g.phase='final'; g.timed=false; for(const p of g.players.values())p.shown=p.score;
  g.ev=ev('final'); pushState();
 }
 function resetToLobby(){
- const g=G; clearTimer(); g.phase='lobby'; g.qi=-1; g.order=[]; g.timed=false; g.ev=null;
+ const g=G; clearTimer(); clearHints(); g.phase='lobby'; g.qi=-1; g.order=[]; g.timed=false; g.ev=null;
  for(const p of g.players.values()){p.score=p.shown=0;p.streak=0;p.best=0;p.ok=0;p.pr=null;}
  pushState();
 }
@@ -1007,7 +1118,7 @@ function applyState(s){
  if(s.left!=null){deadline=now+s.left;dur=s.dur;} else deadline=0;
  const changed=!prev||prev.phase!==s.phase||prev.qi!==s.qi;
  if(changed){
-  lastChars=-1;actKey='';localSent=false;picked=-1;
+  lastChars=-1;actKey='';localSent=false;picked=-1;multiSel=[];orderSel=[];
   try{window.scrollTo({top:0,behavior:'instant'});}catch{window.scrollTo(0,0);}
   if(s.phase==='q'){
    if(prev&&prev.qi===s.qi&&(prev.phase==='answer'||prev.phase==='judge')) typeStart=now-frozen*TYPE_MS;
@@ -1027,6 +1138,7 @@ function playEvent(e){
   case 'ok': SFX.ok(); if(isMe)vib([60,40,60]); flash('ok'); stamp('ok',`${nameOf(e.pid)}  +${e.gain}`); burst(isMe?170:70); if(isMe&&e.streak>=2)bannerMsg(`${e.streak}連続正解！`); break;
   case 'reveal': { const r=S.rev&&S.rev.res&&S.rev.res[me.id];
    if(r&&r.ok){SFX.ok();flash('ok');stamp('ok',`+${r.gain}`);burst(130);if(r.streak>=2)bannerMsg(`${r.streak}連続正解！`);}
+   else if(r&&r.gain>0){SFX.pop();stamp('ok',`+${r.gain}`);}
    else if(r&&!meP().sp){SFX.ng();flash('ng');stamp('ng','');}
    break; }
   case 'timeup': SFX.ng(); stamp('ng','時間切れ'); break;
@@ -1063,8 +1175,18 @@ function renderLobby(){
 }
 const joinUrl=c=>location.origin+location.pathname+'?room='+c;
 /* ---- ゲーム ---- */
+const TYL={tf:'○×',num:'数字当て',order:'並べ替え',multi:'複数選択',ana:'アナグラム',hint:'ヒント',choice:'選択式',text:'記述式'};
+let exKey='';
+function renderExtra(s,q){
+ const hs=q.hints||[]; const key=[q.img||'',q.ana||'',hs.length,s.qi].join('|');
+ if(key===exKey)return; exKey=key; let h='';
+ if(q.img)h+=`<img class="qimg" src="${esc(q.img)}" alt="" referrerpolicy="no-referrer" onerror="this.style.display='none'">`;
+ if(q.ana)h+=`<div class="ana" aria-label="並べ替える文字">${[...q.ana].map(c=>`<span>${esc(c)}</span>`).join('')}</div>`;
+ if(hs.length)h+=`<ol class="hints">${hs.map(t=>`<li>${esc(t)}</li>`).join('')}${q.hn>hs.length?'<li class="next">次のヒントまで…</li>':''}</ol>`;
+ $('#qextra').innerHTML=h;
+}
 function tags(q){
- const t=[`<span class="tag">${q.mode==='buzz'?'早押し':'一問一答'}</span>`,`<span class="tag">${q.kind==='choice'?'選択式':'記述式'}</span>`,`<span class="tag">${q.pts}点</span>`];
+ const t=[`<span class="tag">${q.mode==='buzz'?'早押し':'一問一答'}</span>`,`<span class="tag">${TYL[q.ty]||''}</span>`,`<span class="tag">${q.pts}点</span>`];
  if(q.fin)t.push('<span class="tag hot">ファイナル ×3</span>'); else if(q.dbl)t.push('<span class="tag hot">ダブルチャンス ×2</span>');
  return t.join('');
 }
@@ -1075,6 +1197,7 @@ function renderGame(){
  $('#intro').hidden=!intro; $('#telop').hidden=intro;
  $('#qno').innerHTML=`<small>第</small>${s.qi+1}<small>問</small><em>/${s.total}</em>`;
  $('#tags').innerHTML=tags(q);
+ renderExtra(s,q);
  if(intro){
   const k='i'+s.qi;
   if(introKey!==k){introKey=k;const el=$('#intro');el.className='intro'+(q.fin?' fin':q.dbl?' dbl':'');
@@ -1096,25 +1219,30 @@ function buildAct(s,q,sp){
  const key=[s.phase,s.qi,s.buzzer,s.locked.includes(me.id)?1:0,s.answered.includes(me.id)?1:0,s.judge?s.judge.pid+':'+s.judge.rest:'',sp?1:0].join('|');
  if(key===actKey)return; actKey=key;
  const act=$('#act'); let h='';
- const choices=(en)=>`<div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}${picked===i?' sel':''}" data-i="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>`;
+ const choices=(en)=>q.tf?`<div class="choices tfc">${q.choices.map((c,i)=>`<button class="ch tf ${i===0?'c3':'c1'}${picked===i?' sel':''}" data-i="${i}" ${en?'':'disabled'}><span class="tfs">${c}</span></button>`).join('')}</div>`:`<div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}${picked===i?' sel':''}" data-i="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>`;
  const form=`<form class="ansform" autocomplete="off"><input id="ansin" class="inp" maxlength="60" placeholder="答えを入力" aria-label="答え"><button class="btn" type="submit">解答する</button></form>`;
+ const numForm=`<form class="ansform numform" autocomplete="off"><input id="ansin" class="inp" inputmode="decimal" maxlength="20" placeholder="数字を入力" aria-label="数字"><button class="btn" type="submit">決定</button></form>`;
+ const multiHtml=en=>{en=en&&!localSent;return `<p class="small ordhint">当てはまるものをすべて選んでください</p><div class="choices">${q.choices.map((c,i)=>`<button class="ch c${i}${multiSel.includes(i)?' sel':''}" data-m="${i}" ${en?'':'disabled'}><b>${LETTERS[i]}</b><span>${esc(c)}</span></button>`).join('')}</div>${en?`<div class="jbtns"><button class="btn" data-msend="1" type="button" ${multiSel.length?'':'disabled'}>これで決定</button></div>`:''}`;};
+ const orderHtml=en=>{en=en&&!localSent;return `<p class="small ordhint">正しい順に、上から順番にタップしてください</p><div class="orderlist">${q.items.map((t,i)=>{const pos=orderSel.indexOf(i);return `<button class="oi${pos>=0?' on':''}" data-o="${i}" ${en&&pos<0?'':'disabled'}><b>${pos>=0?pos+1:''}</b><span>${esc(t)}</span></button>`;}).join('')}</div>${en?`<div class="jbtns"><button class="btn sub" data-oreset="1" type="button" ${orderSel.length?'':'disabled'}>やり直す</button><button class="btn" data-osend="1" type="button" ${orderSel.length===q.items.length?'':'disabled'}>これで決定</button></div>`:''}`;};
+ const isForm=q.kind==='text'||q.kind==='num';
+ const inputUI=en=>q.kind==='choice'?choices(en):q.kind==='multi'?multiHtml(en):q.kind==='order'?orderHtml(en):(en?(q.kind==='num'?numForm:form):'');
  let focus=false;
  if(s.phase==='q'&&q.mode==='buzz'){
   if(!sp&&!s.locked.includes(me.id)) h=`<button id="buzzbtn" class="buzz" type="button">押す！</button><p class="hint">スペースキーでも押せます</p>`;
  } else if(s.phase==='q'&&q.mode==='all'){
   const done=s.answered.includes(me.id);
-  if(q.kind==='choice')h=choices(!sp&&!done); else if(!sp&&!done){h=form;focus=true;}
+  h=inputUI(!sp&&!done); focus=isForm&&!sp&&!done;
  } else if(s.phase==='answer'){
   const mine=s.buzzer===me.id;
-  if(q.kind==='choice')h=choices(mine); else if(mine){h=form;focus=true;}
+  h=inputUI(mine); focus=isForm&&mine;
  } else if(s.phase==='judge'){
   if(isHost&&s.judge) h=`<div class="card judge"><p><b>${esc(nameOf(s.judge.pid))}</b>さんの回答</p><div class="jans">${esc(s.judge.text)}</div><p class="small">正解：${esc(s.judge.ans.join(' / '))}</p>${s.judge.k>1?`<p class="small">ほか${s.judge.k-1}人も同じ回答です（まとめて判定されます）</p>`:''}<div class="jbtns"><button class="btn" data-j="1" type="button">正解にする</button><button class="btn red" data-j="0" type="button">不正解にする</button></div>${s.judge.rest>0?`<button class="link jall" data-jall="1" type="button">残り${s.judge.rest}件をすべて不正解にして進む</button>`:''}</div>`;
  } else if(s.phase==='reveal'&&s.rev){
   const r=s.rev,rows=Object.entries(r.res).sort((a,b)=>b[1].gain-a[1].gain);
   const mk=([id,x])=>{
-   const bd=x.ok?[x.m!==1?`逆転補正×${x.m}`:'',x.sb>1?`連続×${x.sb}`:'',x.qm>1?`×${x.qm}`:'',x.sp>1.01?`速さ×${x.sp}`:''].filter(Boolean).join(' ・ '):'';
+   const bd=x.ok?[x.m!==1?`逆転補正×${x.m}`:'',x.sb>1?`連続×${x.sb}`:'',x.qm>1?`×${x.qm}`:'',x.sp>1.01?`速さ×${x.sp}`:'',x.hf&&x.hf<1?`ヒント×${x.hf}`:''].filter(Boolean).join(' ・ '):'';
    const g2=x.gain>0?`+${x.gain}`:x.gain<0?`−${-x.gain}`:'0';
-   return `<li class="${x.ok?'ok':'ng'}"><span class="v">${x.ok?'○':'×'}</span><span class="n">${esc(nameOf(id))}${id===me.id?'（あなた）':''}</span><span class="g2">${g2}</span><span class="a">${x.ans==null?'未回答':esc(x.ans)}</span><span class="bd">${esc(bd)}</span></li>`;};
+   return `<li class="${x.ok?'ok':x.gain>0?'part':'ng'}"><span class="v">${x.ok?'○':x.gain>0?'△':'×'}</span><span class="n">${esc(nameOf(id))}${id===me.id?'（あなた）':''}</span><span class="g2">${g2}</span><span class="a">${x.ans==null?'未回答':esc(x.ans)}</span><span class="bd">${esc(bd)}</span></li>`;};
   const okN=rows.filter(([,x])=>x.ok).length;
   let shown=rows,rest=[];
   if(rows.length>8){const top=rows.slice(0,5),mine=rows.find(([id])=>id===me.id);shown=(mine&&!top.includes(mine))?[...top,mine]:top;rest=rows.filter(x=>!shown.includes(x));}
@@ -1128,6 +1256,13 @@ function buildAct(s,q,sp){
 $('#act').addEventListener('click',e=>{
  const b=e.target.closest('[data-i]');
  if(b&&!b.disabled&&!localSent){localSent=true;picked=Number(b.dataset.i);b.classList.add('sel');$$('#act .ch').forEach(x=>x.disabled=true);toHost({t:'ans',v:Number(b.dataset.i)});return;}
+ const mm=e.target.closest('[data-m]');
+ if(mm&&!mm.disabled&&!localSent){const i=Number(mm.dataset.m);multiSel=multiSel.includes(i)?multiSel.filter(x=>x!==i):[...multiSel,i];actKey='';render();return;}
+ if(e.target.closest('[data-msend]')&&!localSent&&multiSel.length){localSent=true;toHost({t:'ans',v:multiSel});actKey='';render();return;}
+ const oo=e.target.closest('[data-o]');
+ if(oo&&!oo.disabled&&!localSent){orderSel=[...orderSel,Number(oo.dataset.o)];actKey='';render();return;}
+ if(e.target.closest('[data-oreset]')&&!localSent){orderSel=[];actKey='';render();return;}
+ if(e.target.closest('[data-osend]')&&!localSent&&S.q&&S.q.items&&orderSel.length===S.q.items.length){localSent=true;toHost({t:'ans',v:orderSel});actKey='';render();return;}
  const j=e.target.closest('[data-j]'); if(j){hostJudge(j.dataset.j==='1');return;}
  if(e.target.closest('[data-jall]')){hostJudgeRest();return;}
  if(e.target.closest('#buzzbtn'))buzz();
